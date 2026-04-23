@@ -1,23 +1,35 @@
-{
-  "manifest_version": 3,
-  "name": "T5 Input Method",
-  "version": "1.0.0",
-  "description": "T5 stroke-based Chinese/Cantonese input with related word suggestions",
-  "action": {
-    "default_popup": "popup.html",
-    "default_icon": {
-      "16": "icons/icon16.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png"
+'use strict';
+
+let t5WindowId = null;
+
+chrome.action.onClicked.addListener(() => {
+    if (t5WindowId !== null) {
+        chrome.windows.get(t5WindowId, {}, (win) => {
+            if (chrome.runtime.lastError || !win) {
+                openWindow();
+            } else {
+                chrome.windows.update(t5WindowId, { focused: true });
+            }
+        });
+    } else {
+        openWindow();
     }
-  },
-  "icons": {
-    "16": "icons/icon16.png",
-    "48": "icons/icon48.png",
-    "128": "icons/icon128.png"
-  },
-  "permissions": ["storage", "clipboardWrite"],
-  "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self';"
-  }
+});
+
+function openWindow() {
+    chrome.windows.create({
+        url: chrome.runtime.getURL('popup.html'),
+        type: 'popup',
+        width: 440,
+        height: 640,
+        focused: true
+    }, (win) => {
+        t5WindowId = win.id;
+        chrome.windows.onRemoved.addListener(function onRemoved(id) {
+            if (id === t5WindowId) {
+                t5WindowId = null;
+                chrome.windows.onRemoved.removeListener(onRemoved);
+            }
+        });
+    });
 }

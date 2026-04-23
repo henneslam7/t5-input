@@ -85,21 +85,36 @@ textarea:focus { border-color: #93c5fd; box-shadow: 0 0 0 2px rgba(147,197,253,0
 
 <!-- Settings Modal -->
 <div id="settings-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:50;align-items:center;justify-content:center;">
-    <div style="background:white;border-radius:12px;padding:16px;width:340px;max-height:90vh;overflow-y:auto;">
+    <div style="background:white;border-radius:12px;padding:16px;width:360px;max-height:90vh;overflow-y:auto;">
         <h2 style="font-size:15px;font-weight:700;margin-bottom:12px;">設定 Settings</h2>
 
         <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #e2e8f0;">
-            <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;">字典 Dictionary</div>
-            <button id="rime-btn" style="width:100%;padding:8px;background:#7c3aed;color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer;">
+            <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;">筆畫字庫 Stroke Dictionary</div>
+            <button id="rime-btn" style="width:100%;padding:7px;background:#7c3aed;color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer;margin-bottom:4px;">
                 下載 RIME 筆畫字典 (~27,000字)
             </button>
-            <div id="rime-status" style="font-size:10px;color:#64748b;margin-top:4px;text-align:center;"></div>
+            <div id="rime-status" style="font-size:10px;color:#64748b;text-align:center;"></div>
+        </div>
+
+        <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #e2e8f0;">
+            <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;">相關詞庫 Word-pair Dictionaries</div>
+            <button id="cedict-btn" style="width:100%;padding:7px;background:#0369a1;color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer;margin-bottom:4px;">
+                下載 CC-CEDICT 中文詞典 (~120,000詞)
+            </button>
+            <div id="cedict-status" style="font-size:10px;color:#64748b;text-align:center;margin-bottom:6px;"></div>
+            <button id="canto-btn" style="width:100%;padding:7px;background:#0f766e;color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer;margin-bottom:4px;">
+                下載 粵語詞典 words.hk / rime-cantonese
+            </button>
+            <div id="canto-status" style="font-size:10px;color:#64748b;text-align:center;margin-bottom:4px;"></div>
+            <button id="clear-pairs-btn" style="width:100%;padding:5px;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;cursor:pointer;">
+                清除已下載詞對 Clear word pairs
+            </button>
         </div>
 
         <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #e2e8f0;">
             <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;">新增自定字 Add Word</div>
             <div style="display:flex;gap:6px;">
-                <input id="add-char" placeholder="字" maxlength="1" style="border:1px solid #e2e8f0;border-radius:6px;padding:6px;width:60px;font-size:14px;text-align:center;">
+                <input id="add-char" placeholder="字" maxlength="2" style="border:1px solid #e2e8f0;border-radius:6px;padding:6px;width:60px;font-size:14px;text-align:center;">
                 <input id="add-code" placeholder="筆碼 e.g. 3121" style="border:1px solid #e2e8f0;border-radius:6px;padding:6px;flex:1;font-size:12px;">
                 <button id="add-btn" style="background:#2563eb;color:white;border:none;border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;">加</button>
             </div>

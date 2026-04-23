@@ -51,14 +51,17 @@ textarea:focus { border-color: #93c5fd; box-shadow: 0 0 0 2px rgba(147,197,253,0
 </style>
 </head>
 <body>
+
 <div class="header">
     <button id="mode-btn" class="mode-btn mode-on">中 T5</button>
     <span class="header-title">T5 筆畫輸入</span>
     <div class="hdr-right">
         <span class="copy-ok" id="copy-ok">✓ 已複製</span>
         <button id="copy-btn" class="copy-btn">複製清空</button>
+        <button id="settings-btn" class="copy-btn" title="Settings">⚙</button>
     </div>
 </div>
+
 <div class="editor-area">
     <div class="related-bar" id="related-bar"></div>
     <textarea id="textarea" placeholder="開始輸入筆畫…" spellcheck="false"></textarea>
@@ -74,10 +77,40 @@ textarea:focus { border-color: #93c5fd; box-shadow: 0 0 0 2px rgba(147,197,253,0
         </div>
     </div>
 </div>
+
 <div class="key-guide">
     <div class="key-grid" id="key-grid"></div>
     <div class="key-hint">Shift：切換模式 · 6/*：萬用符</div>
 </div>
+
+<!-- Settings Modal -->
+<div id="settings-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:50;align-items:center;justify-content:center;">
+    <div style="background:white;border-radius:12px;padding:16px;width:340px;max-height:90vh;overflow-y:auto;">
+        <h2 style="font-size:15px;font-weight:700;margin-bottom:12px;">設定 Settings</h2>
+
+        <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #e2e8f0;">
+            <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;">字典 Dictionary</div>
+            <button id="rime-btn" style="width:100%;padding:8px;background:#7c3aed;color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer;">
+                下載 RIME 筆畫字典 (~27,000字)
+            </button>
+            <div id="rime-status" style="font-size:10px;color:#64748b;margin-top:4px;text-align:center;"></div>
+        </div>
+
+        <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #e2e8f0;">
+            <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;">新增自定字 Add Word</div>
+            <div style="display:flex;gap:6px;">
+                <input id="add-char" placeholder="字" maxlength="1" style="border:1px solid #e2e8f0;border-radius:6px;padding:6px;width:60px;font-size:14px;text-align:center;">
+                <input id="add-code" placeholder="筆碼 e.g. 3121" style="border:1px solid #e2e8f0;border-radius:6px;padding:6px;flex:1;font-size:12px;">
+                <button id="add-btn" style="background:#2563eb;color:white;border:none;border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;">加</button>
+            </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;">
+            <button id="settings-close" style="padding:6px 16px;background:#1e293b;color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer;">關閉</button>
+        </div>
+    </div>
+</div>
+
 <script src="popup.js"></script>
 </body>
 </html>

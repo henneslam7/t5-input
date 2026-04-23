@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<title>T5 Input</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    width: 420px; height: 600px; overflow: hidden;
+    font-family: 'Noto Sans HK', 'Microsoft YaHei', 'PingFang HK', sans-serif;
+    background: #f8fafc; display: flex; flex-direction: column;
+    user-select: none; -webkit-user-select: none;
+}
+.header { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: #1e40af; color: white; flex-shrink: 0; gap: 8px; }
+.header-title { font-size: 12px; font-weight: 700; letter-spacing: 0.5px; white-space: nowrap; flex: 1; text-align: center; }
+.mode-btn { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 5px; border: none; cursor: pointer; transition: all 0.1s; flex-shrink: 0; }
+.mode-on  { background: white; color: #1e40af; }
+.mode-off { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4); }
+.hdr-right { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+.copy-btn { font-size: 11px; padding: 3px 9px; background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 5px; cursor: pointer; }
+.copy-btn:hover { background: rgba(255,255,255,0.28); }
+.copy-ok { font-size: 10px; color: #86efac; opacity: 0; transition: opacity 0.3s; white-space: nowrap; }
+.editor-area { flex: 1; display: flex; flex-direction: column; padding: 6px 8px 4px; position: relative; min-height: 0; gap: 4px; }
+.related-bar { display: none; align-items: center; gap: 4px; overflow-x: auto; padding: 2px 0; flex-shrink: 0; scrollbar-width: none; min-height: 30px; }
+.related-bar::-webkit-scrollbar { display: none; }
+.related-label { font-size: 10px; color: #94a3b8; white-space: nowrap; flex-shrink: 0; padding: 0 2px; }
+.related-btn { font-size: 16px; padding: 1px 8px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; cursor: pointer; color: #1e40af; white-space: nowrap; flex-shrink: 0; transition: background 0.1s; line-height: 1.4; }
+.related-btn:hover { background: #dbeafe; }
+textarea { flex: 1; resize: none; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; font-size: 18px; line-height: 1.65; color: #1e293b; font-family: inherit; background: white; outline: none; user-select: text; -webkit-user-select: text; min-height: 0; }
+textarea:focus { border-color: #93c5fd; box-shadow: 0 0 0 2px rgba(147,197,253,0.3); }
+.candidate-box { display: none; position: absolute; left: 8px; right: 8px; bottom: 4px; height: 66%; background: white; border: 1.5px solid #93c5fd; border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,0.16); flex-direction: column; z-index: 20; animation: fadeUp 0.12s ease; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.cand-header { display: flex; justify-content: space-between; align-items: center; padding: 5px 10px; border-bottom: 1px solid #f1f5f9; background: #f8fafc; border-radius: 10px 10px 0 0; flex-shrink: 0; }
+.cand-strokes { font-size: 22px; color: #2563eb; letter-spacing: 4px; }
+.cand-code { font-size: 10px; color: #94a3b8; font-family: monospace; }
+.cand-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 3px; padding: 5px; overflow-y: auto; flex: 1; }
+.cand-grid::-webkit-scrollbar { width: 3px; }
+.cand-grid::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+.cand-btn { height: 40px; background: none; border: 1px solid transparent; border-radius: 6px; font-size: 19px; cursor: pointer; color: #1e293b; position: relative; transition: background 0.08s; font-family: inherit; }
+.cand-btn:hover { background: #f1f5f9; }
+.cand-btn.sel { background: #2563eb; color: white; }
+.cand-num { position: absolute; top: 1px; right: 2px; font-size: 8px; opacity: 0.45; }
+.cand-footer { padding: 4px 10px; background: #f8fafc; border-radius: 0 0 10px 10px; display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; flex-shrink: 0; }
+.key-guide { flex-shrink: 0; background: white; border-top: 1px solid #e2e8f0; padding: 6px 8px 5px; }
+.key-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; max-width: 270px; margin: 0 auto; }
+.key-cell { display: flex; flex-direction: column; align-items: center; justify-content: center; background: white; border: 1.5px solid #e2e8f0; border-radius: 6px; padding: 3px 1px; aspect-ratio: 1; box-shadow: 0 1px 2px rgba(0,0,0,0.07); transition: all 0.08s; }
+.key-cell.active { border-color: #2563eb; background: #eff6ff; transform: translateY(1px); box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); }
+.key-letter { font-size: 9px; color: #64748b; font-weight: 700; }
+.key-stroke { font-size: 15px; font-weight: 700; color: #1e293b; line-height: 1.1; }
+.key-hint { text-align: center; font-size: 9px; color: #94a3b8; margin-top: 3px; }
+</style>
+</head>
+<body>
+<div class="header">
+    <button id="mode-btn" class="mode-btn mode-on">中 T5</button>
+    <span class="header-title">T5 筆畫輸入</span>
+    <div class="hdr-right">
+        <span class="copy-ok" id="copy-ok">✓ 已複製</span>
+        <button id="copy-btn" class="copy-btn">複製清空</button>
+    </div>
+</div>
+<div class="editor-area">
+    <div class="related-bar" id="related-bar"></div>
+    <textarea id="textarea" placeholder="開始輸入筆畫…" spellcheck="false"></textarea>
+    <div class="candidate-box" id="candidate-box">
+        <div class="cand-header">
+            <div class="cand-strokes" id="cand-strokes"></div>
+            <div class="cand-code" id="cand-code"></div>
+        </div>
+        <div class="cand-grid" id="cand-grid"></div>
+        <div class="cand-footer">
+            <span>Space / Enter：選字</span>
+            <span>Esc：取消</span>
+        </div>
+    </div>
+</div>
+<div class="key-guide">
+    <div class="key-grid" id="key-grid"></div>
+    <div class="key-hint">Shift：切換模式 · 6/*：萬用符</div>
+</div>
+<script src="popup.js"></script>
+</body>
+</html>

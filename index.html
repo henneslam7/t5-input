@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>T5 Input</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+HK:wght@400;500;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans HK', sans-serif;
+            background-color: #f3f4f6;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .selectable {
+            user-select: text;
+        }
+
+        .candidate-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+            gap: 4px;
+        }
+
+        /* Custom scrollbar */
+        .custom-scroll::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 2px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.15s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        // --- Data & Constants ---
+
+        const STROKE_NAMES = {
+            '1': '橫 (Heng)',
+            '2': '直 (Shu)',
+            '3': '撇 (Pie)',
+            '4': '點 (Dian)',
+            '5': '折 (Zhe)',
+            '6': '通 (Wildcard)'
+        };
+
+        const STROKE_ICONS = {
+            '1': '一',
+            '2': '丨',
+            '3': '丿',
+            '4': '丶',
+            '5': '乙',
+            '6': '*'
+        };
+
+        const INITIAL_DICTIONARY = [
+            { char: '係', code: '323554234' }, { char: '唔', code: '2511251251' },
+            { char: '嘅', code: '25151154' }, { char: '喺', code: '2513554234' },
+            { char: '佢', code: '322511' }, { char: '哋', code: '251525211' },
+            { char: '嗰', code: '25125125111234' }, { char: '嚟', code: '25131234342534' },
+            { char: '咁', code: '25112211' }, { char: '噉', code: '25112211134' },
+            { char: '乜', code: '55' }, { char: '嘢', code: '25125112154523' },
+            { char: '睇', code: '2511143515' }, { char: '畀', code: '25121' },
+            { char: '諗', code: '4511251344544' }, { char: '冇', code: '132511' },
+            { char: '𡃁', code: '25112511135' }, { char: '搵', code: '311225221' },
+            { char: '攞', code: '31122522131234' }, { char: '點', code: '2112512514444' },
+            { char: '攰', code: '125453' }, { char: '呃', code: '2511355' },
+            { char: '一', code: '1' }, { char: '二', code: '11' }, { char: '三', code: '111' },
+            { char: '四', code: '25351' }, { char: '五', code: '1251' }, { char: '六', code: '4134' },
+            { char: '七', code: '151' }, { char: '八', code: '34' }, { char: '九', code: '35' },
+            { char: '十', code: '12' }, { char: '百', code: '132511' }, { char: '千', code: '312' },
+            { char: '萬', code: '12225112534' }, { char: '零', code: '14524444' },
+            { char: '億', code: '324143125114544' },
+            { char: '我', code: '3121534' }, { char: '你', code: '3235234' },
+            { char: '他', code: '32525' }, { char: '她', code: '531525' },
+            { char: '它', code: '44535' }, { char: '們', code: '3225112511' },
+            { char: '自', code: '325111' }, { char: '己', code: '515' },
+            { char: '誰', code: '411125132411121' },
+            { char: '人', code: '34' }, { char: '民', code: '51515' },
+            { char: '是', code: '251112134' }, { char: '有', code: '132511' },
+            { char: '做', code: '32122513134' }, { char: '去', code: '12154' },
+            { char: '來', code: '1431234' }, { char: '食', code: '344511534' },
+            { char: '飲', code: '3445113534' }, { char: '講', code: '4111251112211' },
+            { char: '說', code: '411125143251' }, { char: '看', code: '311325111' },
+            { char: '見', code: '2511135' }, { char: '買', code: '252212511134' },
+            { char: '賣', code: '1254252212511134' }, { char: '行', code: '332112' },
+            { char: '走', code: '1212134' }, { char: '跑', code: '251212135515' },
+            { char: '想', code: '1234251114544' }, { char: '要', code: '125221531' },
+            { char: '會', code: '34112432511' }, { char: '知', code: '31134251' },
+            { char: '識', code: '4111251414312511534' }, { char: '玩', code: '11211135' },
+            { char: '愛', code: '3443451354' }, { char: '喜', code: '121251431251' },
+            { char: '歡', code: '1221251324111213534' }, { char: '打', code: '31112' },
+            { char: '開', code: '11221132' }, { char: '關', code: '444455132511134' },
+            { char: '問', code: '42512511' }, { char: '回', code: '252511' },
+            { char: '車', code: '1251112' }, { char: '屋', code: '51315412154' },
+            { char: '水', code: '2534' }, { char: '火', code: '4334' },
+            { char: '飯', code: '3445113354' }, { char: '錢', code: '341124311534' },
+            { char: '手', code: '3112' }, { char: '口', code: '251' },
+            { char: '心', code: '4544' }, { char: '頭', code: '412125143132511134' },
+            { char: '學', code: '321134521' }, { char: '校', code: '12344134' },
+            { char: '家', code: '4451353334' }, { char: '國', code: '25125115341' },
+            { char: '文', code: '4134' }, { char: '字', code: '445521' },
+            { char: '名', code: '354251' }, { char: '書', code: '511212511' },
+            { char: '電', code: '145244445' }, { char: '腦', code: '3511415525121' },
+            { char: '機', code: '123455413434' }, { char: '工', code: '121' },
+            { char: '作', code: '3231211' }, { char: '業', code: '2243143111234' },
+            { char: '商', code: '41432534251' }, { char: '店', code: '41321251' },
+            { char: '好', code: '531521' }, { char: '大', code: '134' },
+            { char: '小', code: '234' }, { char: '多', code: '354354' },
+            { char: '少', code: '2343' }, { char: '靚', code: '112125111352511135' },
+            { char: '快', code: '4425134' }, { char: '慢', code: '44225112522154' },
+            { char: '新', code: '4143112343312' }, { char: '舊', code: '122324111212511' },
+            { char: '早', code: '251112' }, { char: '晚', code: '25113525135' },
+            { char: '美', code: '431121134' }, { char: '高', code: '4125125251' },
+            { char: '低', code: '3235251' }, { char: '長', code: '311534' },
+            { char: '短', code: '311341251431' }, { char: '遠', code: '12125132454' },
+            { char: '近', code: '3312454' }, { char: '難', code: '1221251132411121' },
+            { char: '易', code: '25113533' },
+            { char: '的', code: '32511354' }, { char: '了', code: '52' },
+            { char: '和', code: '31234251' }, { char: '與', code: '321115' },
+            { char: '以', code: '5434' }, { char: '在', code: '132121' },
+            { char: '就', code: '412512341354' }, { char: '都', code: '1213251152' },
+            { char: '而', code: '132522' }, { char: '但', code: '3225111' },
+            { char: '個', code: '3225122511' }, { char: '這', code: '4111251454' },
+            { char: '那', code: '511352' }, { char: '把', code: '3115215' },
+            { char: '被', code: '4523453254' }, { char: '讓', code: '41112511251125211' },
+            { char: '給', code: '55441341251' }, { char: '並', code: '431132' },
+            { char: '日', code: '2511' }, { char: '月', code: '3511' },
+            { char: '年', code: '311212' }, { char: '時', code: '2511121124' },
+            { char: '今', code: '3445' }, { char: '明', code: '25113511' },
+            { char: '天', code: '1134' }, { char: '地', code: '121525' },
+            { char: '現', code: '11212511135' }, { char: '場', code: '12125113533' },
+            { char: '所', code: '335123312' }, { char: '處', code: '21531535' },
+            { char: '金', code: '34112431' }, { char: '木', code: '1234' },
+            { char: '土', code: '121' }, { char: '風', code: '353251214' },
+            { char: '雨', code: '12524444' }, { char: '山', code: '252' },
+            { char: '海', code: '4413155414' }, { char: '河', code: '44112512' },
+            { char: '公', code: '3454' }, { char: '共', code: '122134' },
+            { char: '同', code: '251251' }, { char: '社', code: '4524121' },
+            { char: '會', code: '34112432511' }, { char: '情', code: '44211212511' },
+            { char: '理', code: '1121251121' }, { char: '事', code: '12515112' },
+            { char: '實', code: '445445251134' }, { char: '體', code: '321134251221121' },
+            { char: '然', code: '35441344444' }, { char: '後', code: '33255452' },
+            { char: '最', code: '251112211154' }, { char: '因', code: '251341' },
+            { char: '果', code: '25111234' }, { char: '意', code: '4143125114544' },
+            { char: '思', code: '251214544' }, { char: '感', code: '1312515344544' }
+        ];
+
+        const KeyDisplay = ({ letter, strokeCode, isActive }) => {
+            return (
+                <div className={`
+                    flex flex-col items-center justify-center rounded-lg border-2 transition-all duration-100 p-0.5 sm:p-1 aspect-square
+                    ${isActive 
+                        ? 'border-blue-500 bg-blue-100 translate-y-1 shadow-inner' 
+                        : 'border-gray-300 bg-white shadow-sm'}
+                `}>
+                    <span className="text-[10px] text-gray-500 font-bold mb-0">{letter}</span>
+                    <span className="text-sm sm:text-lg font-bold text-gray-800 leading-none">{STROKE_ICONS[strokeCode]}</span>
+                </div>
+            );
+        };
+
+        const App = () => {
+            // --- State ---
+            const [inputBuffer, setInputBuffer] = useState(""); 
+            const [text, setText] = useState(""); 
+            const [candidates, setCandidates] = useState([]); 
+            const [selectionIndex, setSelectionIndex] = useState(0); 
+            const [userDict, setUserDict] = useState([]); 
+            const [activeKey, setActiveKey] = useState(null); 
+            
+            const [showSettings, setShowSettings] = useState(false);
+            const [showInstallHelp, setShowInstallHelp] = useState(false);
+            const [copyFeedback, setCopyFeedback] = useState(false);
+            
+            const [isLoading, setIsLoading] = useState(false);
+            const [isImeMode, setIsImeMode] = useState(true); // Toggle between EN and T5
+
+            const MAX_CANDIDATES_RENDER = 60;
+
+            const [keyMap, setKeyMap] = useState({
+                'u': '1', 'i': '2', 'o': '3', 
+                'j': '4', 'k': '5', 'l': '6'
+            });
+            
+            const textAreaRef = useRef(null);
+
+            // --- Logic ---
+
+            const fullDictionary = useMemo(() => {
+                return [...INITIAL_DICTIONARY, ...userDict];
+            }, [userDict]);
+
+            useEffect(() => {
+                if (!inputBuffer) {
+                    setCandidates([]);
+                    return;
+                }
+
+                // FIX: Use Regex to support Wildcard '*' (Code 6)
+                // 6 matches [1-5]
+                // We check if dictionary code starts with the pattern
+                try {
+                    const patternStr = "^" + inputBuffer.replace(/6/g, "[1-5]");
+                    const regex = new RegExp(patternStr);
+
+                    const matches = fullDictionary.filter(entry => 
+                        regex.test(entry.code)
+                    );
+
+                    matches.sort((a, b) => {
+                        // 1. Exact length matches first (e.g. typing "12" shows "12" before "123")
+                        const aExact = a.code.length === inputBuffer.length;
+                        const bExact = b.code.length === inputBuffer.length;
+                        
+                        if (aExact && !bExact) return -1;
+                        if (!aExact && bExact) return 1;
+
+                        // 2. Then sort by length
+                        return a.code.length - b.code.length;
+                    });
+
+                    const unique = [];
+                    const seen = new Set();
+                    matches.forEach(m => {
+                        if (!seen.has(m.char)) {
+                            seen.add(m.char);
+                            unique.push(m);
+                        }
+                    });
+
+                    setCandidates(unique);
+                    setSelectionIndex(0);
+                } catch (e) {
+                    console.error("Regex error", e);
+                    setCandidates([]);
+                }
+            }, [inputBuffer, fullDictionary]);
+
+            // --- Handlers ---
+
+            const copyAndClear = async () => {
+                if (!text) return;
+                try {
+                    await navigator.clipboard.writeText(text);
+                    setText("");
+                    setCopyFeedback(true);
+                    setTimeout(() => setCopyFeedback(false), 1500);
+                } catch (err) {
+                    alert("Failed to copy");
+                }
+            };
+
+            const handleKeyDown = (e) => {
+                const key = e.key.toLowerCase();
+                const code = e.code; 
+
+                // Shift to toggle Mode
+                if (key === 'shift' && !e.repeat) {
+                    setIsImeMode(prev => !prev);
+                    return;
+                }
+
+                // Ctrl+Enter Shortcut
+                if ((e.ctrlKey || e.metaKey) && key === 'enter') {
+                    e.preventDefault();
+                    copyAndClear();
+                    return;
+                }
+
+                // If IME Mode is OFF, allow normal typing
+                if (!isImeMode) return;
+
+                // Numpad Support
+                if (e.location === 3) {
+                    const numpadMap = {
+                        'Numpad7': '1', 'Numpad8': '2', 'Numpad9': '3',
+                        'Numpad4': '4', 'Numpad5': '5', 'Numpad6': '6'
+                    };
+                    if (numpadMap[code]) {
+                        e.preventDefault();
+                        setActiveKey(numpadMap[code]); 
+                        setInputBuffer(prev => prev + numpadMap[code]);
+                        setTimeout(() => setActiveKey(null), 150);
+                        return;
+                    }
+                }
+
+                // Letter keys mapped to strokes
+                if (keyMap.hasOwnProperty(key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                    e.preventDefault();
+                    setActiveKey(key);
+                    setInputBuffer(prev => prev + keyMap[key]);
+                    setTimeout(() => setActiveKey(null), 150);
+                    return;
+                }
+
+                // IME Control Keys
+                if (inputBuffer.length > 0) {
+                    if (key === 'backspace') {
+                        e.preventDefault();
+                        setInputBuffer(prev => prev.slice(0, -1));
+                    }
+                    else if (key === 'escape') {
+                        e.preventDefault();
+                        setInputBuffer("");
+                        setCandidates([]);
+                    }
+                    else if (key === ' ' || key === 'enter') {
+                        e.preventDefault();
+                        if (candidates.length > 0) {
+                            commitChar(candidates[selectionIndex].char);
+                        }
+                    }
+                    else if (key === 'arrowdown' || key === '=') {
+                        e.preventDefault();
+                        setSelectionIndex(prev => Math.min(prev + 1, candidates.length - 1));
+                    }
+                    else if (key === 'arrowup' || key === '-') {
+                        e.preventDefault();
+                        setSelectionIndex(prev => Math.max(prev - 1, 0));
+                    }
+                    else if (/[1-9]/.test(key) && e.location !== 3) {
+                        e.preventDefault();
+                        const idx = parseInt(key) - 1;
+                        if (idx < candidates.length) {
+                            commitChar(candidates[idx].char);
+                        }
+                    }
+                }
+            };
+
+            const commitChar = (char) => {
+                const textarea = textAreaRef.current;
+                if (textarea) {
+                    const start = textarea.selectionStart;
+                    const end = textarea.selectionEnd;
+                    const val = textarea.value;
+                    const newVal = val.substring(0, start) + char + val.substring(end);
+                    
+                    setText(newVal);
+                    
+                    // Crucial: Restore focus and advance cursor
+                    setTimeout(() => {
+                        textarea.focus();
+                        textarea.selectionStart = textarea.selectionEnd = start + char.length;
+                    }, 0);
+                } else {
+                    setText(prev => prev + char);
+                }
+                
+                setInputBuffer("");
+                setCandidates([]);
+            };
+
+            // Prevent button click from stealing focus from Textarea
+            const handleMouseDown = (e) => {
+                e.preventDefault();
+            };
+
+            const handleAddWord = (e) => {
+                e.preventDefault();
+                const char = e.target.newChar.value;
+                const code = e.target.newCode.value;
+                if (char && code) {
+                    setUserDict([...userDict, { char, code }]);
+                    e.target.reset();
+                    alert(`Added ${char} (${code}) to dictionary.`);
+                }
+            };
+
+            const handleImportDict = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const json = JSON.parse(event.target.result);
+                        if (Array.isArray(json)) {
+                            setUserDict(prev => [...prev, ...json]);
+                            alert(`Imported ${json.length} words!`);
+                        } else {
+                            alert("Invalid file format. Expected JSON array.");
+                        }
+                    } catch (err) {
+                        alert("Error parsing JSON file.");
+                    }
+                };
+                reader.readAsText(file);
+            };
+
+            const fetchOnlineDictionary = async () => {
+                setIsLoading(true);
+                const URL = "https://raw.githubusercontent.com/rime/rime-stroke/master/stroke.dict.yaml";
+                try {
+                    const response = await fetch(URL);
+                    if (!response.ok) throw new Error("Network response was not ok");
+                    const text = await response.text();
+                    const lines = text.split('\n');
+                    const newEntries = [];
+
+                    for (const line of lines) {
+                        if (!line || line.startsWith('#') || line.startsWith('---')) continue;
+                        const parts = line.split('\t');
+                        if (parts.length >= 2) {
+                            const char = parts[0];
+                            const rimeCode = parts[1].trim();
+                            let numCode = "";
+                            for (const c of rimeCode) {
+                                if (c === 'h') numCode += '1';
+                                else if (c === 's') numCode += '2';
+                                else if (c === 'p') numCode += '3';
+                                else if (c === 'n') numCode += '4';
+                                else if (c === 'z') numCode += '5';
+                            }
+                            if (numCode.length > 0) {
+                                newEntries.push({ char, code: numCode });
+                            }
+                        }
+                    }
+                    setUserDict(prev => [...prev, ...newEntries]);
+                    alert(`Success! Downloaded and converted ${newEntries.length} characters.`);
+                } catch (error) {
+                    alert("Download failed: " + error.message);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            const getKeyLabel = (targetCode) => {
+                return Object.keys(keyMap).find(key => keyMap[key] === targetCode) || '?';
+            };
+
+            return (
+                <div className="flex flex-col h-screen w-full bg-gray-50 overflow-hidden" onKeyDown={handleKeyDown} tabIndex="0">
+                    
+                    {/* Header - Compact */}
+                    <header className="shrink-0 bg-white border-b px-2 py-2 flex justify-between items-center z-10 shadow-sm h-10 sm:h-12">
+                        <div className="flex items-center gap-2">
+                            <button 
+                                onClick={() => setIsImeMode(!isImeMode)}
+                                className={`px-2 py-0.5 rounded text-xs font-bold transition-colors ${isImeMode ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`}
+                                title="Press Shift to Toggle"
+                            >
+                                {isImeMode ? '中文 T5' : 'EN'}
+                            </button>
+                        </div>
+                        <div className="flex gap-2">
+                             <button onClick={() => setShowInstallHelp(true)} className="px-2 py-0.5 bg-green-50 text-green-700 border border-green-200 rounded hover:bg-green-100 flex items-center gap-1 text-[10px] sm:text-xs font-semibold" title="Install as Program">
+                                <i className="ph ph-download-simple text-xs sm:text-sm"></i>
+                                Install
+                            </button>
+                            <button onClick={() => setShowSettings(!showSettings)} className="p-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200" title="Settings">
+                                <i className="ph ph-gear text-sm sm:text-lg"></i>
+                            </button>
+                        </div>
+                    </header>
+
+                    {/* Main Content Area - Stacked vertically on mobile to maximize editor */}
+                    <div className="flex-1 overflow-hidden flex flex-col">
+                        
+                        {/* Editor Section - Maximize Space */}
+                        <div className="flex-1 flex flex-col p-2 relative min-h-0">
+                            <div className="flex justify-between items-center mb-1 shrink-0">
+                                <span className="text-[10px] font-bold text-gray-400 uppercase">Editor (Ctrl+Enter Clear)</span>
+                                <button 
+                                    onClick={copyAndClear} 
+                                    className={`text-xs font-bold transition-colors ${copyFeedback ? 'text-green-600' : 'text-blue-600 hover:underline'}`}
+                                >
+                                    {copyFeedback ? '✓ Copied' : 'Copy'}
+                                </button>
+                            </div>
+
+                            <textarea 
+                                ref={textAreaRef}
+                                className="selectable w-full h-full text-lg leading-relaxed resize-none focus:outline-none text-gray-800 font-sans p-2 bg-white rounded border border-gray-200 focus:border-blue-400 shadow-sm"
+                                placeholder="Type here..."
+                                value={text}
+                                onChange={(e) => setText(e.target.value)}
+                            ></textarea>
+
+                            {/* Floating Candidate Box */}
+                            {inputBuffer && (
+                                <div className="absolute inset-x-2 bottom-2 h-[60%] bg-white rounded-lg shadow-xl border border-blue-200 flex flex-col z-20 fade-in">
+                                    <div className="flex items-center justify-between p-2 border-b bg-gray-50 rounded-t-lg shrink-0">
+                                        <div className="text-xl font-mono tracking-widest text-blue-600">
+                                            {inputBuffer.split('').map(c => STROKE_ICONS[c] || c).join('')}
+                                        </div>
+                                        <div className="text-xs text-gray-400 font-mono">{inputBuffer}</div>
+                                    </div>
+
+                                    <div className="overflow-y-auto custom-scroll p-1 flex-1">
+                                        <div className="candidate-grid">
+                                            {candidates.length > 0 ? candidates.slice(0, MAX_CANDIDATES_RENDER).map((c, idx) => (
+                                                <button 
+                                                    key={idx}
+                                                    onMouseDown={handleMouseDown} // Prevent focus loss!
+                                                    onClick={() => commitChar(c.char)}
+                                                    className={`
+                                                        h-9 w-full flex items-center justify-center rounded cursor-pointer transition-colors relative text-lg border border-transparent
+                                                        ${idx === selectionIndex ? 'bg-blue-600 text-white' : 'hover:bg-gray-100 text-gray-800'}
+                                                    `}
+                                                >
+                                                    {c.char}
+                                                    {idx < 9 && <span className="absolute top-0 right-0 text-[8px] opacity-50 p-0.5">{idx + 1}</span>}
+                                                </button>
+                                            )) : (
+                                                <div className="col-span-full text-center text-gray-400 text-xs py-2">No match</div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="p-1 bg-gray-50 text-[10px] text-gray-400 flex justify-between rounded-b-lg shrink-0">
+                                        <span>Spc: Pick</span>
+                                        <span>Esc: X</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Bottom Bar - Extremely Compact Key Guide */}
+                        <div className="shrink-0 bg-gray-50 border-t border-gray-200 p-1">
+                            <div className="grid grid-cols-6 gap-1 max-w-[300px] mx-auto">
+                                {['1','2','3','4','5','6'].map(code => (
+                                    <KeyDisplay 
+                                        key={code}
+                                        letter={getKeyLabel(code).toUpperCase()} 
+                                        strokeCode={code} 
+                                        isActive={activeKey === getKeyLabel(code) || activeKey === code} 
+                                    />
+                                ))}
+                            </div>
+                            <div className="text-center text-[9px] text-gray-400 mt-1">
+                                Shift: Toggle Mode • *: Wildcard
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Install Help Modal */}
+                    {showInstallHelp && (
+                        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                            <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md animate-fade-in relative">
+                                <button onClick={() => setShowInstallHelp(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                                    <i className="ph ph-x text-xl"></i>
+                                </button>
+                                
+                                <div className="text-center mb-4">
+                                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 text-blue-600 mb-3">
+                                        <i className="ph ph-desktop text-2xl"></i>
+                                    </div>
+                                    <h2 className="text-xl font-bold text-gray-800">Install as Widget</h2>
+                                    <p className="text-sm text-gray-500 mt-1">Turn this page into a standalone program on your desktop.</p>
+                                </div>
+
+                                <div className="space-y-4 text-sm text-gray-700">
+                                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                        <h3 className="font-bold text-gray-800 mb-2 flex items-center gap-2"><i className="ph ph-google-logo text-blue-500"></i> Google Chrome</h3>
+                                        <ol className="list-decimal pl-4 space-y-1">
+                                            <li>Click the <strong>Menu (⋮)</strong> (top-right of browser).</li>
+                                            <li>Select <strong>Save and share</strong> (or 'More tools').</li>
+                                            <li>Click <strong>Create shortcut...</strong></li>
+                                            <li><strong>Important:</strong> Check the box <strong>"Open as window"</strong>.</li>
+                                            <li>Click <strong>Create</strong>.</li>
+                                        </ol>
+                                    </div>
+                                    
+                                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                        <h3 className="font-bold text-gray-800 mb-2 flex items-center gap-2"><i className="ph ph-microsoft-logo text-blue-800"></i> Microsoft Edge</h3>
+                                        <ol className="list-decimal pl-4 space-y-1">
+                                            <li>Click the <strong>Menu (...)</strong> (top-right).</li>
+                                            <li>Go to <strong>Apps</strong>.</li>
+                                            <li>Select <strong>"Install this site as an app"</strong>.</li>
+                                        </ol>
+                                    </div>
+                                </div>
+
+                                <div className="mt-6 flex justify-center">
+                                    <button onClick={() => setShowInstallHelp(false)} className="px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 font-medium transition-colors">
+                                        Got it
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Settings Modal - Overlay */}
+                    {showSettings && (
+                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                            <div className="bg-white rounded-xl shadow-2xl p-4 w-full max-w-sm max-h-[90vh] overflow-y-auto">
+                                <h2 className="text-lg font-bold mb-4">Settings</h2>
+                                
+                                <div className="mb-4 pb-4 border-b">
+                                    <button 
+                                        onClick={fetchOnlineDictionary} 
+                                        disabled={isLoading}
+                                        className={`w-full py-2 px-3 rounded text-sm font-medium flex items-center justify-center gap-2 ${isLoading ? 'bg-gray-200' : 'bg-purple-600 text-white'}`}
+                                    >
+                                        {isLoading ? 'Downloading...' : 'Download RIME Dictionary'}
+                                    </button>
+                                </div>
+                                
+                                <div className="mb-4 pb-4 border-b">
+                                    <label className="block text-xs font-bold text-gray-700 mb-1">Add Custom Word</label>
+                                    <form onSubmit={handleAddWord} className="flex gap-2">
+                                        <input name="newChar" placeholder="Char" className="border p-2 rounded w-1/3 text-sm selectable" maxLength="1" required />
+                                        <input name="newCode" placeholder="Code" className="border p-2 rounded w-1/3 text-sm selectable" pattern="[1-6]+" required />
+                                        <button type="submit" className="bg-blue-600 text-white px-3 rounded text-sm">Add</button>
+                                    </form>
+                                </div>
+
+                                <div className="mb-4">
+                                    <label className="block text-xs font-bold text-gray-700 mb-1">Import JSON</label>
+                                    <input type="file" accept=".json" onChange={handleImportDict} className="text-xs w-full" />
+                                </div>
+
+                                <div className="flex justify-end">
+                                    <button onClick={() => setShowSettings(false)} className="px-4 py-2 bg-gray-800 text-white rounded text-sm hover:bg-gray-900">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

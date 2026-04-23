@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "T5 Input Method",
   "version": "1.0.0",
-  "description": "T5 Input",
+  "description": "T5 stroke-based Chinese/Cantonese input with related word suggestions",
   "background": {
     "service_worker": "background.js"
   },
@@ -10,6 +10,9 @@
     "default_title": "T5 Input"
   },
   "permissions": ["storage", "clipboardWrite", "windows"],
+  "host_permissions": [
+    "https://raw.githubusercontent.com/*"
+  ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self';"
   }

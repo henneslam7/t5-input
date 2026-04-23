@@ -4,90 +4,102 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>T5 Input</title>
-    
-    <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
-    <!-- Babel for JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+HK:wght@400;500;700&display=swap');
-        
-        body {
-            font-family: 'Noto Sans HK', sans-serif;
-            background-color: #f3f4f6;
-            overflow: hidden;
-            user-select: none;
-        }
-
-        .selectable {
-            user-select: text;
-        }
-
-        .candidate-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
-            gap: 4px;
-        }
-
-        /* Custom scrollbar */
-        .custom-scroll::-webkit-scrollbar {
-            width: 4px;
-            height: 4px;
-        }
-        .custom-scroll::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .custom-scroll::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 2px;
-        }
-        .custom-scroll::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-        
-        .fade-in {
-            animation: fadeIn 0.15s ease-out;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        body { font-family: 'Noto Sans HK', sans-serif; background-color: #f3f4f6; overflow: hidden; user-select: none; }
+        .selectable { user-select: text; }
+        .candidate-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(36px, 1fr)); gap: 4px; }
+        .custom-scroll::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .fade-in { animation: fadeIn 0.15s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .related-bar { display: flex; align-items: center; gap: 4px; overflow-x: auto; padding: 3px 0; scrollbar-width: none; }
+        .related-bar::-webkit-scrollbar { display: none; }
+        .related-word-btn { font-size: 15px; padding: 2px 9px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; cursor: pointer; color: #1e40af; white-space: nowrap; flex-shrink: 0; transition: background 0.1s; line-height: 1.4; }
+        .related-word-btn:hover { background: #dbeafe; }
     </style>
 </head>
 <body>
     <div id="root"></div>
-
     <script type="text/babel">
         const { useState, useEffect, useRef, useMemo } = React;
 
-        // --- Data & Constants ---
+        const STROKE_NAMES = { '1':'橫 (Heng)','2':'直 (Shu)','3':'撇 (Pie)','4':'點 (Dian)','5':'折 (Zhe)','6':'通 (Wildcard)' };
+        const STROKE_ICONS = { '1':'一','2':'丨','3':'丿','4':'丶','5':'乙','6':'*' };
 
-        const STROKE_NAMES = {
-            '1': '橫 (Heng)',
-            '2': '直 (Shu)',
-            '3': '撇 (Pie)',
-            '4': '點 (Dian)',
-            '5': '折 (Zhe)',
-            '6': '通 (Wildcard)'
-        };
-
-        const STROKE_ICONS = {
-            '1': '一',
-            '2': '丨',
-            '3': '丿',
-            '4': '丶',
-            '5': '乙',
-            '6': '*'
+        const RELATED_WORDS = {
+            '我': ['們','的','係','唔','想','去','喺','知','好','都','哋'],
+            '你': ['好','們','的','係','喺','去','知','想','都','哋'],
+            '佢': ['哋','係','喺','去','唔','話','知','都','的'],
+            '係': ['咁','唔','都','就','啲','嘅'],
+            '唔': ['係','知','好','想','去','講','識','見'],
+            '好': ['嘅','靚','快','大','小','多','人','玩','似'],
+            '嘅': ['嗰','時','人','事','嘢'],
+            '哋': ['係','喺','去','唔','都'],
+            '喺': ['度','邊','嘅','呢'],
+            '咁': ['嘅','多','大','好','快','先','做'],
+            '都': ['係','唔','好','可','要','話'],
+            '就': ['係','咁','算','去'],
+            '食': ['飯','嘢','水','咗','過'],
+            '飲': ['水','嘢','咗'],
+            '去': ['嘅','咗','先','邊','咁','到','做'],
+            '嚟': ['嘅','咗','先','過','到'],
+            '講': ['嘢','嘅','咗','到','過','吓'],
+            '知': ['道','唔','嘅','咗','到'],
+            '想': ['食','去','做','買','嘅','到','知'],
+            '買': ['嘢','嘅','咗','到'],
+            '做': ['嘢','嘅','咗','到','人'],
+            '睇': ['嘢','書','戲','吓'],
+            '玩': ['嘢','吓','緊'],
+            '學': ['嘢','校','習','識'],
+            '行': ['路','嘅','咗','先'],
+            '工': ['作','人','廠','資','夫'],
+            '日': ['本','文','期','子','時','光'],
+            '月': ['亮','份','球','光'],
+            '年': ['代','份','輕','青','初'],
+            '家': ['人','庭','裡','長','嘅'],
+            '電': ['腦','話','視','影','子','郵'],
+            '手': ['機','錶','工','藝'],
+            '車': ['站','廂','票','行'],
+            '人': ['家','們','民','生','情','員'],
+            '大': ['家','學','人','小','聲'],
+            '小': ['心','朋','學','時','聲'],
+            '心': ['理','情','地','思','水'],
+            '時': ['間','代','候','光','常'],
+            '地': ['方','上','下','球','址','區'],
+            '國': ['家','際','內','外','語'],
+            '文': ['字','化','章','件','學'],
+            '錢': ['包','財','幣'],
+            '水': ['果','份','平','準'],
+            '火': ['車','山','災'],
+            '風': ['景','水','光','雨'],
+            '書': ['本','店','包'],
+            '一': ['個','次','定','起','百','千'],
+            '二': ['個','次','十','百'],
+            '三': ['個','次','十','百'],
+            '今': ['日','年','次','晚'],
+            '明': ['日','年','白','天'],
+            '早': ['上','晨','咗'],
+            '晚': ['上','間','咗'],
+            '天': ['氣','色','空'],
+            '嗰': ['個','件','度','時','陣'],
+            '嘢': ['食','飲','買','做'],
+            '啲': ['嘢','人','時'],
+            '多': ['嘅','啲','謝'],
+            '少': ['嘅','啲'],
+            '快': ['嘅','啲','速'],
+            '慢': ['嘅','啲'],
+            '新': ['嘅','年','式'],
+            '舊': ['嘅','年','式'],
+            '有': ['啲','嘅','冇','錢','時'],
+            '冇': ['嘅','啲','錢','時','問'],
         };
 
         const INITIAL_DICTIONARY = [
@@ -183,459 +195,248 @@
             { char: '思', code: '251214544' }, { char: '感', code: '1312515344544' }
         ];
 
-        const KeyDisplay = ({ letter, strokeCode, isActive }) => {
-            return (
-                <div className={`
-                    flex flex-col items-center justify-center rounded-lg border-2 transition-all duration-100 p-0.5 sm:p-1 aspect-square
-                    ${isActive 
-                        ? 'border-blue-500 bg-blue-100 translate-y-1 shadow-inner' 
-                        : 'border-gray-300 bg-white shadow-sm'}
-                `}>
-                    <span className="text-[10px] text-gray-500 font-bold mb-0">{letter}</span>
-                    <span className="text-sm sm:text-lg font-bold text-gray-800 leading-none">{STROKE_ICONS[strokeCode]}</span>
-                </div>
-            );
-        };
+        const KeyDisplay = ({ letter, strokeCode, isActive }) => (
+            <div className={`flex flex-col items-center justify-center rounded-lg border-2 transition-all duration-100 p-0.5 sm:p-1 aspect-square ${isActive ? 'border-blue-500 bg-blue-100 translate-y-1 shadow-inner' : 'border-gray-300 bg-white shadow-sm'}`}>
+                <span className="text-[10px] text-gray-500 font-bold mb-0">{letter}</span>
+                <span className="text-sm sm:text-lg font-bold text-gray-800 leading-none">{STROKE_ICONS[strokeCode]}</span>
+            </div>
+        );
 
         const App = () => {
-            // --- State ---
-            const [inputBuffer, setInputBuffer] = useState(""); 
-            const [text, setText] = useState(""); 
-            const [candidates, setCandidates] = useState([]); 
-            const [selectionIndex, setSelectionIndex] = useState(0); 
-            const [userDict, setUserDict] = useState([]); 
-            const [activeKey, setActiveKey] = useState(null); 
-            
+            const [inputBuffer, setInputBuffer] = useState("");
+            const [text, setText] = useState("");
+            const [candidates, setCandidates] = useState([]);
+            const [selectionIndex, setSelectionIndex] = useState(0);
+            const [userDict, setUserDict] = useState([]);
+            const [activeKey, setActiveKey] = useState(null);
             const [showSettings, setShowSettings] = useState(false);
             const [showInstallHelp, setShowInstallHelp] = useState(false);
             const [copyFeedback, setCopyFeedback] = useState(false);
-            
             const [isLoading, setIsLoading] = useState(false);
-            const [isImeMode, setIsImeMode] = useState(true); // Toggle between EN and T5
-
+            const [isImeMode, setIsImeMode] = useState(true);
+            const [relatedWords, setRelatedWords] = useState([]);
             const MAX_CANDIDATES_RENDER = 60;
-
-            const [keyMap, setKeyMap] = useState({
-                'u': '1', 'i': '2', 'o': '3', 
-                'j': '4', 'k': '5', 'l': '6'
-            });
-            
+            const [keyMap] = useState({ 'u':'1','i':'2','o':'3','j':'4','k':'5','l':'6' });
             const textAreaRef = useRef(null);
 
-            // --- Logic ---
-
-            const fullDictionary = useMemo(() => {
-                return [...INITIAL_DICTIONARY, ...userDict];
-            }, [userDict]);
+            const fullDictionary = useMemo(() => [...INITIAL_DICTIONARY, ...userDict], [userDict]);
 
             useEffect(() => {
-                if (!inputBuffer) {
-                    setCandidates([]);
-                    return;
-                }
-
-                // FIX: Use Regex to support Wildcard '*' (Code 6)
-                // 6 matches [1-5]
-                // We check if dictionary code starts with the pattern
+                if (!inputBuffer) { setCandidates([]); return; }
+                if (relatedWords.length > 0) setRelatedWords([]);
                 try {
-                    const patternStr = "^" + inputBuffer.replace(/6/g, "[1-5]");
-                    const regex = new RegExp(patternStr);
-
-                    const matches = fullDictionary.filter(entry => 
-                        regex.test(entry.code)
-                    );
-
+                    const regex = new RegExp("^" + inputBuffer.replace(/6/g, "[1-5]"));
+                    const matches = fullDictionary.filter(e => regex.test(e.code));
                     matches.sort((a, b) => {
-                        // 1. Exact length matches first (e.g. typing "12" shows "12" before "123")
-                        const aExact = a.code.length === inputBuffer.length;
-                        const bExact = b.code.length === inputBuffer.length;
-                        
-                        if (aExact && !bExact) return -1;
-                        if (!aExact && bExact) return 1;
-
-                        // 2. Then sort by length
+                        const ae = a.code.length === inputBuffer.length;
+                        const be = b.code.length === inputBuffer.length;
+                        if (ae && !be) return -1; if (!ae && be) return 1;
                         return a.code.length - b.code.length;
                     });
-
-                    const unique = [];
-                    const seen = new Set();
-                    matches.forEach(m => {
-                        if (!seen.has(m.char)) {
-                            seen.add(m.char);
-                            unique.push(m);
-                        }
-                    });
-
-                    setCandidates(unique);
-                    setSelectionIndex(0);
-                } catch (e) {
-                    console.error("Regex error", e);
-                    setCandidates([]);
-                }
+                    const unique = []; const seen = new Set();
+                    matches.forEach(m => { if (!seen.has(m.char)) { seen.add(m.char); unique.push(m); } });
+                    setCandidates(unique); setSelectionIndex(0);
+                } catch (e) { setCandidates([]); }
             }, [inputBuffer, fullDictionary]);
-
-            // --- Handlers ---
 
             const copyAndClear = async () => {
                 if (!text) return;
-                try {
-                    await navigator.clipboard.writeText(text);
-                    setText("");
-                    setCopyFeedback(true);
-                    setTimeout(() => setCopyFeedback(false), 1500);
-                } catch (err) {
-                    alert("Failed to copy");
-                }
+                try { await navigator.clipboard.writeText(text); setText(""); setCopyFeedback(true); setTimeout(() => setCopyFeedback(false), 1500); }
+                catch (err) { alert("Failed to copy"); }
             };
 
             const handleKeyDown = (e) => {
-                const key = e.key.toLowerCase();
-                const code = e.code; 
-
-                // Shift to toggle Mode
-                if (key === 'shift' && !e.repeat) {
-                    setIsImeMode(prev => !prev);
-                    return;
-                }
-
-                // Ctrl+Enter Shortcut
-                if ((e.ctrlKey || e.metaKey) && key === 'enter') {
-                    e.preventDefault();
-                    copyAndClear();
-                    return;
-                }
-
-                // If IME Mode is OFF, allow normal typing
+                const key = e.key.toLowerCase(); const code = e.code;
+                if (key === 'shift' && !e.repeat) { setIsImeMode(prev => !prev); return; }
+                if ((e.ctrlKey || e.metaKey) && key === 'enter') { e.preventDefault(); copyAndClear(); return; }
                 if (!isImeMode) return;
-
-                // Numpad Support
                 if (e.location === 3) {
-                    const numpadMap = {
-                        'Numpad7': '1', 'Numpad8': '2', 'Numpad9': '3',
-                        'Numpad4': '4', 'Numpad5': '5', 'Numpad6': '6'
-                    };
-                    if (numpadMap[code]) {
-                        e.preventDefault();
-                        setActiveKey(numpadMap[code]); 
-                        setInputBuffer(prev => prev + numpadMap[code]);
-                        setTimeout(() => setActiveKey(null), 150);
-                        return;
-                    }
+                    const nm = {'Numpad7':'1','Numpad8':'2','Numpad9':'3','Numpad4':'4','Numpad5':'5','Numpad6':'6'};
+                    if (nm[code]) { e.preventDefault(); setActiveKey(nm[code]); setInputBuffer(prev => prev + nm[code]); setTimeout(() => setActiveKey(null), 150); return; }
                 }
-
-                // Letter keys mapped to strokes
                 if (keyMap.hasOwnProperty(key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
-                    e.preventDefault();
-                    setActiveKey(key);
-                    setInputBuffer(prev => prev + keyMap[key]);
-                    setTimeout(() => setActiveKey(null), 150);
-                    return;
+                    e.preventDefault(); setActiveKey(key); setInputBuffer(prev => prev + keyMap[key]); setTimeout(() => setActiveKey(null), 150); return;
                 }
-
-                // IME Control Keys
                 if (inputBuffer.length > 0) {
-                    if (key === 'backspace') {
-                        e.preventDefault();
-                        setInputBuffer(prev => prev.slice(0, -1));
-                    }
-                    else if (key === 'escape') {
-                        e.preventDefault();
-                        setInputBuffer("");
-                        setCandidates([]);
-                    }
-                    else if (key === ' ' || key === 'enter') {
-                        e.preventDefault();
-                        if (candidates.length > 0) {
-                            commitChar(candidates[selectionIndex].char);
-                        }
-                    }
-                    else if (key === 'arrowdown' || key === '=') {
-                        e.preventDefault();
-                        setSelectionIndex(prev => Math.min(prev + 1, candidates.length - 1));
-                    }
-                    else if (key === 'arrowup' || key === '-') {
-                        e.preventDefault();
-                        setSelectionIndex(prev => Math.max(prev - 1, 0));
-                    }
-                    else if (/[1-9]/.test(key) && e.location !== 3) {
-                        e.preventDefault();
-                        const idx = parseInt(key) - 1;
-                        if (idx < candidates.length) {
-                            commitChar(candidates[idx].char);
-                        }
-                    }
+                    if (key === 'backspace') { e.preventDefault(); setInputBuffer(prev => prev.slice(0, -1)); }
+                    else if (key === 'escape') { e.preventDefault(); setInputBuffer(""); setCandidates([]); }
+                    else if (key === ' ' || key === 'enter') { e.preventDefault(); if (candidates.length > 0) commitChar(candidates[selectionIndex].char); }
+                    else if (key === 'arrowdown' || key === '=') { e.preventDefault(); setSelectionIndex(prev => Math.min(prev + 1, candidates.length - 1)); }
+                    else if (key === 'arrowup' || key === '-') { e.preventDefault(); setSelectionIndex(prev => Math.max(prev - 1, 0)); }
+                    else if (/[1-9]/.test(key) && e.location !== 3) { e.preventDefault(); const idx = parseInt(key) - 1; if (idx < candidates.length) commitChar(candidates[idx].char); }
                 }
             };
 
             const commitChar = (char) => {
                 const textarea = textAreaRef.current;
                 if (textarea) {
-                    const start = textarea.selectionStart;
-                    const end = textarea.selectionEnd;
-                    const val = textarea.value;
-                    const newVal = val.substring(0, start) + char + val.substring(end);
-                    
-                    setText(newVal);
-                    
-                    // Crucial: Restore focus and advance cursor
-                    setTimeout(() => {
-                        textarea.focus();
-                        textarea.selectionStart = textarea.selectionEnd = start + char.length;
-                    }, 0);
-                } else {
-                    setText(prev => prev + char);
-                }
-                
-                setInputBuffer("");
-                setCandidates([]);
+                    const start = textarea.selectionStart, end = textarea.selectionEnd, val = textarea.value;
+                    setText(val.substring(0, start) + char + val.substring(end));
+                    setTimeout(() => { textarea.focus(); textarea.selectionStart = textarea.selectionEnd = start + char.length; }, 0);
+                } else { setText(prev => prev + char); }
+                setInputBuffer(""); setCandidates([]);
+                const lastChar = char[char.length - 1];
+                setRelatedWords(RELATED_WORDS[char] || RELATED_WORDS[lastChar] || []);
             };
 
-            // Prevent button click from stealing focus from Textarea
-            const handleMouseDown = (e) => {
-                e.preventDefault();
-            };
+            const handleMouseDown = (e) => e.preventDefault();
 
             const handleAddWord = (e) => {
                 e.preventDefault();
-                const char = e.target.newChar.value;
-                const code = e.target.newCode.value;
-                if (char && code) {
-                    setUserDict([...userDict, { char, code }]);
-                    e.target.reset();
-                    alert(`Added ${char} (${code}) to dictionary.`);
-                }
+                const char = e.target.newChar.value, code = e.target.newCode.value;
+                if (char && code) { setUserDict([...userDict, { char, code }]); e.target.reset(); alert(`Added ${char} (${code})`); }
             };
 
             const handleImportDict = (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
+                const file = e.target.files[0]; if (!file) return;
                 const reader = new FileReader();
-                reader.onload = (event) => {
-                    try {
-                        const json = JSON.parse(event.target.result);
-                        if (Array.isArray(json)) {
-                            setUserDict(prev => [...prev, ...json]);
-                            alert(`Imported ${json.length} words!`);
-                        } else {
-                            alert("Invalid file format. Expected JSON array.");
-                        }
-                    } catch (err) {
-                        alert("Error parsing JSON file.");
-                    }
+                reader.onload = (ev) => {
+                    try { const json = JSON.parse(ev.target.result); if (Array.isArray(json)) { setUserDict(prev => [...prev, ...json]); alert(`Imported ${json.length} words!`); } else alert("Invalid format."); }
+                    catch { alert("Error parsing JSON."); }
                 };
                 reader.readAsText(file);
             };
 
             const fetchOnlineDictionary = async () => {
                 setIsLoading(true);
-                const URL = "https://raw.githubusercontent.com/rime/rime-stroke/master/stroke.dict.yaml";
                 try {
-                    const response = await fetch(URL);
-                    if (!response.ok) throw new Error("Network response was not ok");
-                    const text = await response.text();
-                    const lines = text.split('\n');
-                    const newEntries = [];
-
+                    const res = await fetch("https://raw.githubusercontent.com/rime/rime-stroke/master/stroke.dict.yaml");
+                    if (!res.ok) throw new Error("Network error");
+                    const lines = (await res.text()).split('\n');
+                    const entries = [];
                     for (const line of lines) {
                         if (!line || line.startsWith('#') || line.startsWith('---')) continue;
                         const parts = line.split('\t');
                         if (parts.length >= 2) {
-                            const char = parts[0];
-                            const rimeCode = parts[1].trim();
                             let numCode = "";
-                            for (const c of rimeCode) {
-                                if (c === 'h') numCode += '1';
-                                else if (c === 's') numCode += '2';
-                                else if (c === 'p') numCode += '3';
-                                else if (c === 'n') numCode += '4';
-                                else if (c === 'z') numCode += '5';
+                            for (const c of parts[1].trim()) {
+                                if (c==='h') numCode+='1'; else if (c==='s') numCode+='2';
+                                else if (c==='p') numCode+='3'; else if (c==='n') numCode+='4';
+                                else if (c==='z') numCode+='5';
                             }
-                            if (numCode.length > 0) {
-                                newEntries.push({ char, code: numCode });
-                            }
+                            if (numCode) entries.push({ char: parts[0], code: numCode });
                         }
                     }
-                    setUserDict(prev => [...prev, ...newEntries]);
-                    alert(`Success! Downloaded and converted ${newEntries.length} characters.`);
-                } catch (error) {
-                    alert("Download failed: " + error.message);
-                } finally {
-                    setIsLoading(false);
-                }
+                    setUserDict(prev => [...prev, ...entries]);
+                    alert(`Downloaded ${entries.length} characters.`);
+                } catch (err) { alert("Download failed: " + err.message); }
+                finally { setIsLoading(false); }
             };
 
-            const getKeyLabel = (targetCode) => {
-                return Object.keys(keyMap).find(key => keyMap[key] === targetCode) || '?';
-            };
+            const getKeyLabel = (targetCode) => Object.keys(keyMap).find(k => keyMap[k] === targetCode) || '?';
 
             return (
                 <div className="flex flex-col h-screen w-full bg-gray-50 overflow-hidden" onKeyDown={handleKeyDown} tabIndex="0">
-                    
-                    {/* Header - Compact */}
                     <header className="shrink-0 bg-white border-b px-2 py-2 flex justify-between items-center z-10 shadow-sm h-10 sm:h-12">
                         <div className="flex items-center gap-2">
-                            <button 
-                                onClick={() => setIsImeMode(!isImeMode)}
-                                className={`px-2 py-0.5 rounded text-xs font-bold transition-colors ${isImeMode ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`}
-                                title="Press Shift to Toggle"
-                            >
+                            <button onClick={() => setIsImeMode(!isImeMode)} className={`px-2 py-0.5 rounded text-xs font-bold transition-colors ${isImeMode ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`} title="Press Shift to Toggle">
                                 {isImeMode ? '中文 T5' : 'EN'}
                             </button>
                         </div>
                         <div className="flex gap-2">
-                             <button onClick={() => setShowInstallHelp(true)} className="px-2 py-0.5 bg-green-50 text-green-700 border border-green-200 rounded hover:bg-green-100 flex items-center gap-1 text-[10px] sm:text-xs font-semibold" title="Install as Program">
-                                <i className="ph ph-download-simple text-xs sm:text-sm"></i>
-                                Install
+                            <button onClick={() => setShowInstallHelp(true)} className="px-2 py-0.5 bg-green-50 text-green-700 border border-green-200 rounded hover:bg-green-100 flex items-center gap-1 text-[10px] sm:text-xs font-semibold">
+                                <i className="ph ph-download-simple text-xs sm:text-sm"></i>Install
                             </button>
-                            <button onClick={() => setShowSettings(!showSettings)} className="p-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200" title="Settings">
+                            <button onClick={() => setShowSettings(!showSettings)} className="p-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200">
                                 <i className="ph ph-gear text-sm sm:text-lg"></i>
                             </button>
                         </div>
                     </header>
 
-                    {/* Main Content Area - Stacked vertically on mobile to maximize editor */}
                     <div className="flex-1 overflow-hidden flex flex-col">
-                        
-                        {/* Editor Section - Maximize Space */}
                         <div className="flex-1 flex flex-col p-2 relative min-h-0">
                             <div className="flex justify-between items-center mb-1 shrink-0">
                                 <span className="text-[10px] font-bold text-gray-400 uppercase">Editor (Ctrl+Enter Clear)</span>
-                                <button 
-                                    onClick={copyAndClear} 
-                                    className={`text-xs font-bold transition-colors ${copyFeedback ? 'text-green-600' : 'text-blue-600 hover:underline'}`}
-                                >
+                                <button onClick={copyAndClear} className={`text-xs font-bold transition-colors ${copyFeedback ? 'text-green-600' : 'text-blue-600 hover:underline'}`}>
                                     {copyFeedback ? '✓ Copied' : 'Copy'}
                                 </button>
                             </div>
 
-                            <textarea 
-                                ref={textAreaRef}
-                                className="selectable w-full h-full text-lg leading-relaxed resize-none focus:outline-none text-gray-800 font-sans p-2 bg-white rounded border border-gray-200 focus:border-blue-400 shadow-sm"
-                                placeholder="Type here..."
-                                value={text}
-                                onChange={(e) => setText(e.target.value)}
-                            ></textarea>
+                            {relatedWords.length > 0 && !inputBuffer && (
+                                <div className="related-bar shrink-0 mb-1 fade-in">
+                                    <span className="text-[10px] text-gray-400 whitespace-nowrap flex-shrink-0">相關：</span>
+                                    {relatedWords.map((w, i) => (
+                                        <button key={i} onMouseDown={handleMouseDown} onClick={() => commitChar(w)} className="related-word-btn">{w}</button>
+                                    ))}
+                                </div>
+                            )}
 
-                            {/* Floating Candidate Box */}
+                            <textarea ref={textAreaRef} className="selectable w-full h-full text-lg leading-relaxed resize-none focus:outline-none text-gray-800 font-sans p-2 bg-white rounded border border-gray-200 focus:border-blue-400 shadow-sm" placeholder="Type here..." value={text} onChange={(e) => setText(e.target.value)}></textarea>
+
                             {inputBuffer && (
                                 <div className="absolute inset-x-2 bottom-2 h-[60%] bg-white rounded-lg shadow-xl border border-blue-200 flex flex-col z-20 fade-in">
                                     <div className="flex items-center justify-between p-2 border-b bg-gray-50 rounded-t-lg shrink-0">
-                                        <div className="text-xl font-mono tracking-widest text-blue-600">
-                                            {inputBuffer.split('').map(c => STROKE_ICONS[c] || c).join('')}
-                                        </div>
+                                        <div className="text-xl font-mono tracking-widest text-blue-600">{inputBuffer.split('').map(c => STROKE_ICONS[c] || c).join('')}</div>
                                         <div className="text-xs text-gray-400 font-mono">{inputBuffer}</div>
                                     </div>
-
                                     <div className="overflow-y-auto custom-scroll p-1 flex-1">
                                         <div className="candidate-grid">
                                             {candidates.length > 0 ? candidates.slice(0, MAX_CANDIDATES_RENDER).map((c, idx) => (
-                                                <button 
-                                                    key={idx}
-                                                    onMouseDown={handleMouseDown} // Prevent focus loss!
-                                                    onClick={() => commitChar(c.char)}
-                                                    className={`
-                                                        h-9 w-full flex items-center justify-center rounded cursor-pointer transition-colors relative text-lg border border-transparent
-                                                        ${idx === selectionIndex ? 'bg-blue-600 text-white' : 'hover:bg-gray-100 text-gray-800'}
-                                                    `}
-                                                >
+                                                <button key={idx} onMouseDown={handleMouseDown} onClick={() => commitChar(c.char)}
+                                                    className={`h-9 w-full flex items-center justify-center rounded cursor-pointer transition-colors relative text-lg border border-transparent ${idx === selectionIndex ? 'bg-blue-600 text-white' : 'hover:bg-gray-100 text-gray-800'}`}>
                                                     {c.char}
                                                     {idx < 9 && <span className="absolute top-0 right-0 text-[8px] opacity-50 p-0.5">{idx + 1}</span>}
                                                 </button>
-                                            )) : (
-                                                <div className="col-span-full text-center text-gray-400 text-xs py-2">No match</div>
-                                            )}
+                                            )) : <div className="col-span-full text-center text-gray-400 text-xs py-2">No match</div>}
                                         </div>
                                     </div>
-                                    
                                     <div className="p-1 bg-gray-50 text-[10px] text-gray-400 flex justify-between rounded-b-lg shrink-0">
-                                        <span>Spc: Pick</span>
-                                        <span>Esc: X</span>
+                                        <span>Spc: Pick</span><span>Esc: X</span>
                                     </div>
                                 </div>
                             )}
                         </div>
 
-                        {/* Bottom Bar - Extremely Compact Key Guide */}
                         <div className="shrink-0 bg-gray-50 border-t border-gray-200 p-1">
                             <div className="grid grid-cols-6 gap-1 max-w-[300px] mx-auto">
                                 {['1','2','3','4','5','6'].map(code => (
-                                    <KeyDisplay 
-                                        key={code}
-                                        letter={getKeyLabel(code).toUpperCase()} 
-                                        strokeCode={code} 
-                                        isActive={activeKey === getKeyLabel(code) || activeKey === code} 
-                                    />
+                                    <KeyDisplay key={code} letter={getKeyLabel(code).toUpperCase()} strokeCode={code} isActive={activeKey === getKeyLabel(code) || activeKey === code} />
                                 ))}
                             </div>
-                            <div className="text-center text-[9px] text-gray-400 mt-1">
-                                Shift: Toggle Mode • *: Wildcard
-                            </div>
+                            <div className="text-center text-[9px] text-gray-400 mt-1">Shift: Toggle Mode • *: Wildcard</div>
                         </div>
                     </div>
 
-                    {/* Install Help Modal */}
                     {showInstallHelp && (
                         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                            <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md animate-fade-in relative">
-                                <button onClick={() => setShowInstallHelp(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
-                                    <i className="ph ph-x text-xl"></i>
-                                </button>
-                                
+                            <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md relative">
+                                <button onClick={() => setShowInstallHelp(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><i className="ph ph-x text-xl"></i></button>
                                 <div className="text-center mb-4">
-                                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 text-blue-600 mb-3">
-                                        <i className="ph ph-desktop text-2xl"></i>
-                                    </div>
+                                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 text-blue-600 mb-3"><i className="ph ph-desktop text-2xl"></i></div>
                                     <h2 className="text-xl font-bold text-gray-800">Install as Widget</h2>
-                                    <p className="text-sm text-gray-500 mt-1">Turn this page into a standalone program on your desktop.</p>
+                                    <p className="text-sm text-gray-500 mt-1">Turn this page into a standalone app.</p>
                                 </div>
-
                                 <div className="space-y-4 text-sm text-gray-700">
                                     <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                                        <h3 className="font-bold text-gray-800 mb-2 flex items-center gap-2"><i className="ph ph-google-logo text-blue-500"></i> Google Chrome</h3>
+                                        <h3 className="font-bold mb-2">Google Chrome</h3>
                                         <ol className="list-decimal pl-4 space-y-1">
-                                            <li>Click the <strong>Menu (⋮)</strong> (top-right of browser).</li>
-                                            <li>Select <strong>Save and share</strong> (or 'More tools').</li>
-                                            <li>Click <strong>Create shortcut...</strong></li>
-                                            <li><strong>Important:</strong> Check the box <strong>"Open as window"</strong>.</li>
-                                            <li>Click <strong>Create</strong>.</li>
+                                            <li>Menu (⋮) → Save and share → Create shortcut</li>
+                                            <li>Check <strong>"Open as window"</strong> → Create</li>
                                         </ol>
                                     </div>
-                                    
                                     <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                                        <h3 className="font-bold text-gray-800 mb-2 flex items-center gap-2"><i className="ph ph-microsoft-logo text-blue-800"></i> Microsoft Edge</h3>
+                                        <h3 className="font-bold mb-2">Microsoft Edge</h3>
                                         <ol className="list-decimal pl-4 space-y-1">
-                                            <li>Click the <strong>Menu (...)</strong> (top-right).</li>
-                                            <li>Go to <strong>Apps</strong>.</li>
-                                            <li>Select <strong>"Install this site as an app"</strong>.</li>
+                                            <li>Menu (...) → Apps → Install this site as an app</li>
                                         </ol>
                                     </div>
                                 </div>
-
                                 <div className="mt-6 flex justify-center">
-                                    <button onClick={() => setShowInstallHelp(false)} className="px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 font-medium transition-colors">
-                                        Got it
-                                    </button>
+                                    <button onClick={() => setShowInstallHelp(false)} className="px-6 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 font-medium">Got it</button>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* Settings Modal - Overlay */}
                     {showSettings && (
                         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
                             <div className="bg-white rounded-xl shadow-2xl p-4 w-full max-w-sm max-h-[90vh] overflow-y-auto">
                                 <h2 className="text-lg font-bold mb-4">Settings</h2>
-                                
                                 <div className="mb-4 pb-4 border-b">
-                                    <button 
-                                        onClick={fetchOnlineDictionary} 
-                                        disabled={isLoading}
-                                        className={`w-full py-2 px-3 rounded text-sm font-medium flex items-center justify-center gap-2 ${isLoading ? 'bg-gray-200' : 'bg-purple-600 text-white'}`}
-                                    >
+                                    <button onClick={fetchOnlineDictionary} disabled={isLoading} className={`w-full py-2 px-3 rounded text-sm font-medium flex items-center justify-center gap-2 ${isLoading ? 'bg-gray-200' : 'bg-purple-600 text-white'}`}>
                                         {isLoading ? 'Downloading...' : 'Download RIME Dictionary'}
                                     </button>
                                 </div>
-                                
                                 <div className="mb-4 pb-4 border-b">
                                     <label className="block text-xs font-bold text-gray-700 mb-1">Add Custom Word</label>
                                     <form onSubmit={handleAddWord} className="flex gap-2">
@@ -644,12 +445,10 @@
                                         <button type="submit" className="bg-blue-600 text-white px-3 rounded text-sm">Add</button>
                                     </form>
                                 </div>
-
                                 <div className="mb-4">
                                     <label className="block text-xs font-bold text-gray-700 mb-1">Import JSON</label>
                                     <input type="file" accept=".json" onChange={handleImportDict} className="text-xs w-full" />
                                 </div>
-
                                 <div className="flex justify-end">
                                     <button onClick={() => setShowSettings(false)} className="px-4 py-2 bg-gray-800 text-white rounded text-sm hover:bg-gray-900">Close</button>
                                 </div>

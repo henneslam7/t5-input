@@ -330,5 +330,62 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('copy-btn').addEventListener('click', copyAndClear);
     document.addEventListener('keydown', handleKeyDown);
     $textarea.addEventListener('input', saveState);
+        // Settings modal
+    const $settingsModal = document.getElementById('settings-modal');
+    document.getElementById('settings-btn').addEventListener('click', () => {
+        $settingsModal.style.display = 'flex';
+    });
+    document.getElementById('settings-close').addEventListener('click', () => {
+        $settingsModal.style.display = 'none';
+    });
+
+    // RIME dictionary download
+    document.getElementById('rime-btn').addEventListener('click', async () => {
+        const btn = document.getElementById('rime-btn');
+        const status = document.getElementById('rime-status');
+        btn.textContent = '下載中…'; btn.disabled = true;
+        status.textContent = '';
+        try {
+            const res = await fetch('https://raw.githubusercontent.com/rime/rime-stroke/master/stroke.dict.yaml');
+            if (!res.ok) throw new Error('Network error');
+            const lines = (await res.text()).split('\n');
+            const entries = [];
+            for (const line of lines) {
+                if (!line || line.startsWith('#') || line.startsWith('---')) continue;
+                const parts = line.split('\t');
+                if (parts.length >= 2) {
+                    let numCode = '';
+                    for (const c of parts[1].trim()) {
+                        if (c==='h') numCode+='1'; else if (c==='s') numCode+='2';
+                        else if (c==='p') numCode+='3'; else if (c==='n') numCode+='4';
+                        else if (c==='z') numCode+='5';
+                    }
+                    if (numCode) entries.push({ char: parts[0], code: numCode });
+                }
+            }
+            userDict = [...userDict, ...entries];
+            saveState();
+            status.textContent = `✓ 已下載 ${entries.length} 個字`;
+            btn.textContent = '✓ 完成';
+        } catch (e) {
+            status.textContent = '✗ 下載失敗: ' + e.message;
+            btn.textContent = '重試'; btn.disabled = false;
+        }
+    });
+
+    // Add custom word
+    document.getElementById('add-btn').addEventListener('click', () => {
+        const char = document.getElementById('add-char').value.trim();
+        const code = document.getElementById('add-code').value.trim();
+        if (!char || !code || !/^[1-6]+$/.test(code)) {
+            alert('請輸入字和有效筆碼 (1-6)'); return;
+        }
+        userDict = [...userDict, { char, code }];
+        saveState();
+        document.getElementById('add-char').value = '';
+        document.getElementById('add-code').value = '';
+        alert(`已加入：${char} (${code})`);
+    });
+
     loadState(() => render());
 });

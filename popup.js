@@ -167,6 +167,18 @@ const RELATED_WORDS = {
 
 let inputBuffer = '', candidates = [], selIdx = 0, userDict = [];
 let isImeMode = true, relatedWords = [], activeKey = null;
+// Dynamic word pairs built from CC-CEDICT / rime-cantonese downloads
+let wordPairs = {};
+
+function getRelated(char) {
+    const s = RELATED_WORDS[char] || RELATED_WORDS[char[char.length - 1]] || [];
+    const d = wordPairs[char]    || wordPairs[char[char.length - 1]]    || [];
+    const seen = new Set();
+    const out  = [];
+    [...s, ...d].forEach(w => { if (!seen.has(w)) { seen.add(w); out.push(w); } });
+    return out.slice(0, 16);
+}
+
 let $textarea, $candBox, $candStrokes, $candCode, $candGrid;
 let $relatedBar, $modeBtn, $copyOk, $keyGrid;
 
@@ -198,7 +210,7 @@ function commitChar(char) {
     const newPos = s + char.length;
     setTimeout(() => { $textarea.focus(); $textarea.setSelectionRange(newPos, newPos); }, 0);
     inputBuffer = ''; candidates = []; selIdx = 0;
-    relatedWords = RELATED_WORDS[char] || RELATED_WORDS[char[char.length - 1]] || [];
+    relatedWords = getRelated(char);
     render(); saveState();
 }
 
@@ -314,6 +326,76 @@ function loadState(cb) {
         try { const d = JSON.parse(localStorage.getItem('t5state') || '{}'); if (d.composedText) $textarea.value = d.composedText; if (Array.isArray(d.userDict)) userDict = d.userDict; } catch(_) {}
         cb();
     }
+    function saveWordPairs() {
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        chrome.storage.local.set({ wordPairs });
+    } else {
+        try { localStorage.setItem('t5pairs', JSON.stringify(wordPairs)); } catch(_) {}
+    }
+}
+
+function loadWordPairs(cb) {
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        chrome.storage.local.get(['wordPairs'], data => {
+            if (data.wordPairs) wordPairs = data.wordPairs;
+            cb();
+        });
+    } else {
+        try {
+            const raw = localStorage.getItem('t5pairs');
+            if (raw) wordPairs = JSON.parse(raw);
+        } catch(_) {}
+        cb();
+    }
+}
+
+async function downloadDict(url, parser, statusEl, btn) {
+    const origText = btn.textContent;
+    btn.disabled = true; btn.textContent = '下載中…';
+    statusEl.textContent = '';
+    try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const count = parser(await res.text());
+        saveWordPairs();
+        statusEl.style.color = '#16a34a';
+        statusEl.textContent = `✓ 已載入 ${count} 個詞對`;
+        btn.textContent = '✓ 完成';
+    } catch(e) {
+        statusEl.style.color = '#dc2626';
+        statusEl.textContent = '✗ 失敗: ' + e.message;
+        btn.textContent = origText; btn.disabled = false;
+    }
+}
+
+function parseCEDict(text) {
+    let count = 0;
+    for (const line of text.split('\n')) {
+        if (!line || line.startsWith('#')) continue;
+        const trad = line.split(' ')[0];
+        if (trad.length === 2) {
+            const [a, b] = [trad[0], trad[1]];
+            if (!wordPairs[a]) wordPairs[a] = [];
+            if (!wordPairs[a].includes(b)) { wordPairs[a].push(b); count++; }
+        }
+    }
+    return count;
+}
+
+function parseCanto(text) {
+    let count = 0, inData = false;
+    for (const line of text.split('\n')) {
+        if (line.trim() === '...') { inData = true; continue; }
+        if (!inData || !line.trim() || line.startsWith('#')) continue;
+        const word = line.split(/[\t\s]/)[0];
+        if (word.length >= 2) {
+            const [a, b] = [word[0], word[1]];
+            if (!wordPairs[a]) wordPairs[a] = [];
+            if (!wordPairs[a].includes(b)) { wordPairs[a].push(b); count++; }
+        }
+    }
+    return count;
+}
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -387,5 +469,87 @@ document.addEventListener('DOMContentLoaded', () => {
         alert(`已加入：${char} (${code})`);
     });
 
-    loadState(() => render());
+        // Settings modal
+    const $settingsModal = document.getElementById('settings-modal');
+    document.getElementById('settings-btn').addEventListener('click',  () => { $settingsModal.style.display = 'flex'; });
+    document.getElementById('settings-close').addEventListener('click', () => { $settingsModal.style.display = 'none'; });
+
+    // RIME strokes
+    document.getElementById('rime-btn').addEventListener('click', async () => {
+        const btn = document.getElementById('rime-btn');
+        const st  = document.getElementById('rime-status');
+        btn.disabled = true; btn.textContent = '下載中…'; st.textContent = '';
+        try {
+            const res = await fetch('https://raw.githubusercontent.com/rime/rime-stroke/master/stroke.dict.yaml');
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const lines = (await res.text()).split('\n');
+            const entries = [];
+            for (const line of lines) {
+                if (!line || line.startsWith('#') || line.startsWith('---')) continue;
+                const parts = line.split('\t');
+                if (parts.length >= 2) {
+                    let code = '';
+                    for (const c of parts[1].trim()) {
+                        if (c==='h') code+='1'; else if (c==='s') code+='2';
+                        else if (c==='p') code+='3'; else if (c==='n') code+='4';
+                        else if (c==='z') code+='5';
+                    }
+                    if (code) entries.push({ char: parts[0], code });
+                }
+            }
+            userDict = [...userDict, ...entries];
+            saveState();
+            st.style.color = '#16a34a';
+            st.textContent  = `✓ 已下載 ${entries.length} 個字`;
+            btn.textContent = '✓ 完成';
+        } catch(e) {
+            st.style.color = '#dc2626';
+            st.textContent = '✗ 失敗: ' + e.message;
+            btn.textContent = '下載 RIME 筆畫字典 (~27,000字)';
+            btn.disabled = false;
+        }
+    });
+
+    // CC-CEDICT
+    document.getElementById('cedict-btn').addEventListener('click', () =>
+        downloadDict(
+            'https://raw.githubusercontent.com/mhagiwara/cc-cedict/master/cedict_ts.u8',
+            parseCEDict,
+            document.getElementById('cedict-status'),
+            document.getElementById('cedict-btn')
+        )
+    );
+
+    // Cantonese (rime-cantonese uses words.hk as source)
+    document.getElementById('canto-btn').addEventListener('click', () =>
+        downloadDict(
+            'https://raw.githubusercontent.com/rime/rime-cantonese/main/jyut6ping3.words.dict.yaml',
+            parseCanto,
+            document.getElementById('canto-status'),
+            document.getElementById('canto-btn')
+        )
+    );
+
+    // Clear word pairs
+    document.getElementById('clear-pairs-btn').addEventListener('click', () => {
+        wordPairs = {};
+        saveWordPairs();
+        document.getElementById('cedict-status').textContent = '';
+        document.getElementById('canto-status').textContent  = '';
+        alert('詞對已清除 Word pairs cleared');
+    });
+
+    // Custom word add
+    document.getElementById('add-btn').addEventListener('click', () => {
+        const char = document.getElementById('add-char').value.trim();
+        const code = document.getElementById('add-code').value.trim();
+        if (!char || !code || !/^[1-6]+$/.test(code)) { alert('請輸入字和有效筆碼 (1-6)'); return; }
+        userDict = [...userDict, { char, code }];
+        saveState();
+        document.getElementById('add-char').value = '';
+        document.getElementById('add-code').value = '';
+        alert(`已加入：${char} (${code})`);
+    });
+
+    loadState(() => loadWordPairs(() => render()));
 });

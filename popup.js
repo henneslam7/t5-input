@@ -1,9 +1,31 @@
 'use strict';
 
 const STROKE_ICONS = { '1':'一', '2':'丨', '3':'丿', '4':'丶', '5':'乙', '6':'*' };
-const KEY_MAP = { 'u':'1', 'i':'2', 'o':'3', 'j':'4', 'k':'5', 'l':'6' };
-const KEY_LABELS = { '1':'U', '2':'I', '3':'O', '4':'J', '5':'K', '6':'L' };
+const KEY_MAP      = { 'u':'1', 'i':'2', 'o':'3', 'j':'4', 'k':'5', 'l':'6' };
+const KEY_LABELS   = { '1':'U', '2':'I', '3':'O', '4':'J', '5':'K', '6':'L' };
 
+// Dictionary download sources — each array is tried in order until one succeeds
+const DICT_SOURCES = {
+    RIME_STROKE: [
+        'https://cdn.jsdelivr.net/gh/rime/rime-stroke@master/stroke.dict.yaml',
+        'https://raw.githubusercontent.com/rime/rime-stroke/master/stroke.dict.yaml'
+    ],
+    CEDICT: [
+        // CC-CEDICT mirrors
+        'https://cdn.jsdelivr.net/gh/kfcd/cc-cedict@master/cedict_ts.u8',
+        'https://cdn.jsdelivr.net/gh/mhagiwara/cc-cedict@master/cedict_ts.u8',
+        'https://raw.githubusercontent.com/mhagiwara/cc-cedict/master/cedict_ts.u8',
+        // Reliable fallback: rime terra-pinyin (traditional Chinese, same bigram format)
+        'https://cdn.jsdelivr.net/gh/rime/rime-terra-pinyin@master/terra_pinyin.dict.yaml',
+        'https://raw.githubusercontent.com/rime/rime-terra-pinyin/master/terra_pinyin.dict.yaml'
+    ],
+    CANTO: [
+        'https://cdn.jsdelivr.net/gh/rime/rime-cantonese@main/jyut6ping3.words.dict.yaml',
+        'https://raw.githubusercontent.com/rime/rime-cantonese/main/jyut6ping3.words.dict.yaml'
+    ]
+};
+
+// ── Built-in dictionary ──────────────────────────────────────────────────────
 const INITIAL_DICTIONARY = [
     {char:'係',code:'323554234'},{char:'唔',code:'2511251251'},
     {char:'嘅',code:'25151154'},{char:'喺',code:'2513554234'},
@@ -13,9 +35,9 @@ const INITIAL_DICTIONARY = [
     {char:'乜',code:'55'},{char:'嘢',code:'25125112154523'},
     {char:'睇',code:'2511143515'},{char:'畀',code:'25121'},
     {char:'諗',code:'4511251344544'},{char:'冇',code:'132511'},
-    {char:'𡃁',code:'25112511135'},{char:'搵',code:'311225221'},
-    {char:'攞',code:'31122522131234'},{char:'點',code:'2112512514444'},
-    {char:'攰',code:'125453'},{char:'呃',code:'2511355'},
+    {char:'搵',code:'311225221'},{char:'攞',code:'31122522131234'},
+    {char:'點',code:'2112512514444'},{char:'攰',code:'125453'},
+    {char:'呃',code:'2511355'},
     {char:'一',code:'1'},{char:'二',code:'11'},{char:'三',code:'111'},
     {char:'四',code:'25351'},{char:'五',code:'1251'},{char:'六',code:'4134'},
     {char:'七',code:'151'},{char:'八',code:'34'},{char:'九',code:'35'},
@@ -97,94 +119,146 @@ const INITIAL_DICTIONARY = [
     {char:'感',code:'1312515344544'}
 ];
 
+// ── Static related words (fallback when no downloaded dict) ──────────────────
 const RELATED_WORDS = {
-    '我': ['們','的','係','唔','想','去','喺','知','好','都','哋'],
-    '你': ['好','們','的','係','喺','去','知','想','都','哋'],
-    '佢': ['哋','係','喺','去','唔','話','知','都','的'],
-    '係': ['咁','唔','都','就','啲','嘅'],
-    '唔': ['係','知','好','想','去','講','識','見'],
-    '好': ['嘅','靚','快','大','小','多','人','玩','似'],
-    '嘅': ['嗰','時','人','事','嘢'],
-    '哋': ['係','喺','去','唔','都'],
-    '喺': ['度','邊','嘅','呢'],
-    '咁': ['嘅','多','大','好','快','先','做'],
-    '都': ['係','唔','好','可','要','話'],
-    '就': ['係','咁','算','去'],
-    '食': ['飯','嘢','水','咗','過'],
-    '飲': ['水','嘢','咗'],
-    '去': ['嘅','咗','先','邊','咁','到','做'],
-    '嚟': ['嘅','咗','先','過','到'],
-    '講': ['嘢','嘅','咗','到','過','吓'],
-    '知': ['道','唔','嘅','咗','到'],
-    '想': ['食','去','做','買','嘅','到','知'],
-    '買': ['嘢','嘅','咗','到'],
-    '做': ['嘢','嘅','咗','到','人'],
-    '睇': ['嘢','書','戲','吓'],
-    '玩': ['嘢','吓','緊'],
-    '學': ['嘢','校','習','識'],
-    '行': ['路','嘅','咗','先'],
-    '工': ['作','人','廠','資','夫'],
-    '日': ['本','文','期','子','時','光'],
-    '月': ['亮','份','球','光'],
-    '年': ['代','份','輕','青','初'],
-    '家': ['人','庭','裡','長','嘅'],
-    '電': ['腦','話','視','影','子','郵'],
-    '手': ['機','錶','工','藝'],
-    '車': ['站','廂','票','行'],
-    '人': ['家','們','民','生','情','員'],
-    '大': ['家','學','人','小','聲'],
-    '小': ['心','朋','學','時','聲'],
-    '心': ['理','情','地','思','水'],
-    '時': ['間','代','候','光','常'],
-    '地': ['方','上','下','球','址','區'],
-    '國': ['家','際','內','外','語'],
-    '文': ['字','化','章','件','學'],
-    '錢': ['包','財','幣'],
-    '水': ['果','份','平','準'],
-    '火': ['車','山','災'],
-    '風': ['景','水','光','雨'],
-    '書': ['本','店','包'],
-    '一': ['個','次','定','起','百','千'],
-    '二': ['個','次','十','百'],
-    '三': ['個','次','十','百'],
-    '今': ['日','年','次','晚'],
-    '明': ['日','年','白','天'],
-    '早': ['上','晨','咗'],
-    '晚': ['上','間','咗'],
-    '天': ['氣','色','空'],
-    '嗰': ['個','件','度','時','陣'],
-    '嘢': ['食','飲','買','做'],
-    '啲': ['嘢','人','時'],
-    '多': ['嘅','啲','謝'],
-    '少': ['嘅','啲'],
-    '快': ['嘅','啲','速'],
-    '慢': ['嘅','啲'],
-    '新': ['嘅','年','式'],
-    '舊': ['嘅','年','式'],
-    '有': ['啲','嘅','冇','錢','時'],
-    '冇': ['嘅','啲','錢','時','問'],
+    '我':['們','的','係','唔','想','去','喺','知','好','都','哋'],
+    '你':['好','們','的','係','喺','去','知','想','都','哋'],
+    '佢':['哋','係','喺','去','唔','話','知','都','的'],
+    '係':['咁','唔','都','就','啲','嘅'],
+    '唔':['係','知','好','想','去','講','識','見'],
+    '好':['嘅','靚','快','大','小','多','人','玩','似'],
+    '嘅':['嗰','時','人','事','嘢'],
+    '哋':['係','喺','去','唔','都'],
+    '喺':['度','邊','嘅','呢'],
+    '咁':['嘅','多','大','好','快','先','做'],
+    '都':['係','唔','好','可','要','話'],
+    '就':['係','咁','算','去'],
+    '食':['飯','嘢','水','咗','過'],
+    '飲':['水','嘢','咗'],
+    '去':['嘅','咗','先','邊','咁','到','做'],
+    '嚟':['嘅','咗','先','過','到'],
+    '講':['嘢','嘅','咗','到','過','吓'],
+    '知':['道','唔','嘅','咗','到'],
+    '想':['食','去','做','買','嘅','到','知'],
+    '買':['嘢','嘅','咗','到'],
+    '做':['嘢','嘅','咗','到','人'],
+    '睇':['嘢','書','戲','吓'],
+    '玩':['嘢','吓','緊'],
+    '學':['嘢','校','習','識'],
+    '行':['路','嘅','咗','先'],
+    '工':['作','人','廠','資','夫'],
+    '日':['本','文','期','子','時','光'],
+    '月':['亮','份','球','光'],
+    '年':['代','份','輕','青','初'],
+    '家':['人','庭','裡','長','嘅'],
+    '電':['腦','話','視','影','子','郵'],
+    '手':['機','錶','工','藝'],
+    '車':['站','廂','票','行'],
+    '人':['家','們','民','生','情','員'],
+    '大':['家','學','人','小','聲'],
+    '小':['心','朋','學','時','聲'],
+    '心':['理','情','地','思','水'],
+    '時':['間','代','候','光','常'],
+    '地':['方','上','下','球','址','區'],
+    '國':['家','際','內','外','語'],
+    '文':['字','化','章','件','學'],
+    '錢':['包','財','幣'],
+    '水':['果','份','平','準'],
+    '火':['車','山','災'],
+    '風':['景','水','光','雨'],
+    '書':['本','店','包'],
+    '一':['個','次','定','起','百','千'],
+    '二':['個','次','十','百'],
+    '三':['個','次','十','百'],
+    '今':['日','年','次','晚'],
+    '明':['日','年','白','天'],
+    '早':['上','晨','咗'],
+    '晚':['上','間','咗'],
+    '天':['氣','色','空'],
+    '嗰':['個','件','度','時','陣'],
+    '嘢':['食','飲','買','做'],
+    '啲':['嘢','人','時'],
+    '多':['嘅','啲','謝'],
+    '少':['嘅','啲'],
+    '快':['嘅','啲','速'],
+    '慢':['嘅','啲'],
+    '新':['嘅','年','式'],
+    '舊':['嘅','年','式'],
+    '有':['啲','嘅','冇','錢','時'],
+    '冇':['嘅','啲','錢','時','問'],
 };
 
-let inputBuffer = '', candidates = [], selIdx = 0, userDict = [];
-let isImeMode = true, relatedWords = [], activeKey = null;
-// Dynamic word pairs built from CC-CEDICT / rime-cantonese downloads
-let wordPairs = {};
+// ── IndexedDB ────────────────────────────────────────────────────────────────
+const DB_NAME = 'T5_IME_DB', DB_VERSION = 1;
+let db;
 
-function getRelated(char) {
-    const s = RELATED_WORDS[char] || RELATED_WORDS[char[char.length - 1]] || [];
-    const d = wordPairs[char]    || wordPairs[char[char.length - 1]]    || [];
-    const seen = new Set();
-    const out  = [];
-    [...s, ...d].forEach(w => { if (!seen.has(w)) { seen.add(w); out.push(w); } });
-    return out.slice(0, 16);
+function initDB() {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = e => {
+            const d = e.target.result;
+            if (!d.objectStoreNames.contains('settings')) d.createObjectStore('settings');
+            if (!d.objectStoreNames.contains('userDict'))  d.createObjectStore('userDict', { keyPath: 'char' });
+            if (!d.objectStoreNames.contains('wordPairs')) d.createObjectStore('wordPairs');
+        };
+        req.onsuccess = e => { db = e.target.result; resolve(); };
+        req.onerror   = () => reject(req.error);
+    });
 }
 
+function dbGet(store, key) {
+    return new Promise(r => {
+        const req = db.transaction(store, 'readonly').objectStore(store).get(key);
+        req.onsuccess = () => r(req.result ?? null);
+        req.onerror   = () => r(null);
+    });
+}
+
+function dbSet(store, key, value) {
+    return new Promise(r => {
+        const req = db.transaction(store, 'readwrite').objectStore(store).put(value, key);
+        req.onsuccess = r; req.onerror = r;
+    });
+}
+
+function dbDelete(store, key) {
+    const tx = db.transaction(store, 'readwrite');
+    tx.objectStore(store).delete(key);
+}
+
+function dbSetAll(store, items) {
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(store, 'readwrite');
+        const os = tx.objectStore(store);
+        items.forEach(item => os.put(item));
+        tx.oncomplete = resolve;
+        tx.onerror    = reject;
+    });
+}
+
+function dbGetAll(store) {
+    return new Promise(r => {
+        const req = db.transaction(store, 'readonly').objectStore(store).getAll();
+        req.onsuccess = () => r(req.result ?? []);
+        req.onerror   = () => r([]);
+    });
+}
+
+// ── App state ────────────────────────────────────────────────────────────────
+let inputBuffer = '', candidates = [], selIdx = 0;
+let userDict = [], isImeMode = true, relatedWords = [], activeKey = null, wordPairs = {};
+
+// ── DOM refs ─────────────────────────────────────────────────────────────────
 let $textarea, $candBox, $candStrokes, $candCode, $candGrid;
 let $relatedBar, $modeBtn, $copyOk, $keyGrid;
 
 function fullDict() { return [...INITIAL_DICTIONARY, ...userDict]; }
-function bufferToStrokes(buf) { return buf.split('').map(c => STROKE_ICONS[c] || c).join(''); }
 
+function bufferToStrokes(buf) {
+    return buf.split('').map(c => STROKE_ICONS[c] || c).join('');
+}
+
+// ── Candidates ───────────────────────────────────────────────────────────────
 function computeCandidates() {
     if (!inputBuffer) { candidates = []; return; }
     try {
@@ -194,7 +268,7 @@ function computeCandidates() {
             const ae = a.code.length === inputBuffer.length;
             const be = b.code.length === inputBuffer.length;
             if (ae && !be) return -1;
-            if (!ae && be) return 1;
+            if (!ae && be) return  1;
             return a.code.length - b.code.length;
         });
         const seen = new Set();
@@ -204,6 +278,15 @@ function computeCandidates() {
     } catch (_) { candidates = []; }
 }
 
+// ── Related words ─────────────────────────────────────────────────────────────
+function getRelated(char) {
+    const dyn = (wordPairs[char] || []).slice();
+    const sta = RELATED_WORDS[char] || RELATED_WORDS[char[char.length - 1]] || [];
+    sta.forEach(w => { if (!dyn.includes(w)) dyn.push(w); });
+    return dyn.slice(0, 16);
+}
+
+// ── Commit ───────────────────────────────────────────────────────────────────
 function commitChar(char) {
     const s = $textarea.selectionStart, e = $textarea.selectionEnd, v = $textarea.value;
     $textarea.value = v.substring(0, s) + char + v.substring(e);
@@ -211,22 +294,24 @@ function commitChar(char) {
     setTimeout(() => { $textarea.focus(); $textarea.setSelectionRange(newPos, newPos); }, 0);
     inputBuffer = ''; candidates = []; selIdx = 0;
     relatedWords = getRelated(char);
-    render(); saveState();
+    render();
+    dbSet('settings', 'composedText', $textarea.value);
 }
 
+// ── Render ───────────────────────────────────────────────────────────────────
 function renderModeBtn() {
     $modeBtn.textContent = isImeMode ? '中 T5' : 'EN';
-    $modeBtn.className = 'mode-btn ' + (isImeMode ? 'mode-on' : 'mode-off');
+    $modeBtn.className   = 'mode-btn ' + (isImeMode ? 'mode-on' : 'mode-off');
 }
 
 function renderCandidateBox() {
     if (!inputBuffer) { $candBox.style.display = 'none'; return; }
     $candBox.style.display = 'flex';
     $candStrokes.textContent = bufferToStrokes(inputBuffer);
-    $candCode.textContent = inputBuffer;
+    $candCode.textContent    = inputBuffer;
     $candGrid.innerHTML = '';
     const slice = candidates.slice(0, 60);
-    if (slice.length === 0) {
+    if (!slice.length) {
         const msg = document.createElement('div');
         msg.style.cssText = 'grid-column:1/-1;text-align:center;color:#94a3b8;font-size:12px;padding:8px';
         msg.textContent = '無符合字';
@@ -235,7 +320,7 @@ function renderCandidateBox() {
     }
     slice.forEach((c, i) => {
         const btn = document.createElement('button');
-        btn.className = 'cand-btn' + (i === selIdx ? ' sel' : '');
+        btn.className   = 'cand-btn' + (i === selIdx ? ' sel' : '');
         btn.textContent = c.char;
         if (i < 9) {
             const num = document.createElement('span');
@@ -252,9 +337,15 @@ function renderRelatedBar() {
     if (!relatedWords.length || inputBuffer) { $relatedBar.style.display = 'none'; return; }
     $relatedBar.style.display = 'flex';
     $relatedBar.innerHTML = '<span class="related-label">相關：</span>';
-    relatedWords.forEach(w => {
+    relatedWords.forEach((w, i) => {
         const btn = document.createElement('button');
-        btn.className = 'related-btn'; btn.textContent = w;
+        btn.className   = 'related-btn';
+        btn.textContent = w;
+        if (i < 9) {
+            const num = document.createElement('span');
+            num.className = 'rel-num'; num.textContent = i + 1;
+            btn.appendChild(num);
+        }
         btn.addEventListener('mousedown', ev => ev.preventDefault());
         btn.addEventListener('click', () => commitChar(w));
         $relatedBar.appendChild(btn);
@@ -275,281 +366,219 @@ function renderKeyGrid() {
     });
 }
 
-function render() { renderModeBtn(); renderCandidateBox(); renderRelatedBar(); renderKeyGrid(); }
+function render() {
+    renderModeBtn();
+    renderCandidateBox();
+    renderRelatedBar();
+    renderKeyGrid();
+}
 
+// ── Keyboard ──────────────────────────────────────────────────────────────────
 function handleKeyDown(e) {
     const key = e.key.toLowerCase();
-    if (key === 'shift' && !e.repeat) { isImeMode = !isImeMode; render(); return; }
-    if ((e.ctrlKey || e.metaKey) && key === 'enter') { e.preventDefault(); copyAndClear(); return; }
+
+    // Ctrl/Cmd + Shift + Enter → copy & clear
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && key === 'enter') {
+        e.preventDefault(); copyAndClear(); return;
+    }
+
+    // Shift alone → toggle IME mode
+    if (e.key === 'Shift' && !e.repeat) { isImeMode = !isImeMode; render(); return; }
     if (!isImeMode) return;
+
+    // Numpad 7-9 / 4-6
     if (e.location === 3) {
-        const nm = {Numpad7:'1',Numpad8:'2',Numpad9:'3',Numpad4:'4',Numpad5:'5',Numpad6:'6'};
-        if (nm[e.code]) { e.preventDefault(); flashKey(nm[e.code]); inputBuffer += nm[e.code]; computeCandidates(); render(); return; }
+        const nm = { Numpad7:'1', Numpad8:'2', Numpad9:'3', Numpad4:'4', Numpad5:'5', Numpad6:'6' };
+        if (nm[e.code]) {
+            e.preventDefault(); flashKey(nm[e.code]);
+            inputBuffer += nm[e.code]; computeCandidates(); render(); return;
+        }
     }
+
+    // Stroke letter keys
     if (KEY_MAP[key] && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        e.preventDefault(); flashKey(KEY_MAP[key]); inputBuffer += KEY_MAP[key]; computeCandidates(); render(); return;
+        e.preventDefault(); flashKey(KEY_MAP[key]);
+        inputBuffer += KEY_MAP[key]; computeCandidates(); render(); return;
     }
+
+    // Buffer active
     if (inputBuffer.length > 0) {
-        if (key === 'backspace') { e.preventDefault(); inputBuffer = inputBuffer.slice(0, -1); computeCandidates(); render(); }
-        else if (key === 'escape') { e.preventDefault(); inputBuffer = ''; candidates = []; render(); }
-        else if (key === ' ' || key === 'enter') { e.preventDefault(); if (candidates.length > 0) commitChar(candidates[selIdx].char); }
-        else if (key === 'arrowdown' || key === '=') { e.preventDefault(); selIdx = Math.min(selIdx + 1, candidates.length - 1); renderCandidateBox(); }
-        else if (key === 'arrowup' || key === '-') { e.preventDefault(); selIdx = Math.max(selIdx - 1, 0); renderCandidateBox(); }
-        else if (/^[1-9]$/.test(key) && e.location !== 3) { e.preventDefault(); const i = parseInt(key) - 1; if (i < candidates.length) commitChar(candidates[i].char); }
+        if (key === 'backspace') {
+            e.preventDefault(); inputBuffer = inputBuffer.slice(0, -1); computeCandidates(); render();
+        } else if (key === 'escape') {
+            e.preventDefault(); inputBuffer = ''; candidates = []; render();
+        } else if (key === ' ' || key === 'enter') {
+            e.preventDefault(); if (candidates.length) commitChar(candidates[selIdx].char);
+        } else if (key === 'arrowdown' || key === '=') {
+            e.preventDefault(); selIdx = Math.min(selIdx + 1, candidates.length - 1); renderCandidateBox();
+        } else if (key === 'arrowup' || key === '-') {
+            e.preventDefault(); selIdx = Math.max(selIdx - 1, 0); renderCandidateBox();
+        } else if (/^[1-9]$/.test(key) && !e.ctrlKey && !e.metaKey && e.location !== 3) {
+            e.preventDefault();
+            const i = parseInt(key) - 1;
+            if (i < candidates.length) commitChar(candidates[i].char);
+        }
+        return;
+    }
+
+    // No buffer: 1-9 selects related word
+    if (relatedWords.length && /^[1-9]$/.test(key) && !e.ctrlKey && !e.metaKey && e.location !== 3) {
+        e.preventDefault();
+        const i = parseInt(key) - 1;
+        if (i < relatedWords.length) commitChar(relatedWords[i]);
     }
 }
 
-function flashKey(code) { activeKey = code; renderKeyGrid(); setTimeout(() => { activeKey = null; renderKeyGrid(); }, 150); }
+function flashKey(code) {
+    activeKey = code; renderKeyGrid();
+    setTimeout(() => { activeKey = null; renderKeyGrid(); }, 150);
+}
 
+// ── Copy & clear ──────────────────────────────────────────────────────────────
 async function copyAndClear() {
-    const val = $textarea.value;
-    if (!val) return;
-    try { await navigator.clipboard.writeText(val); } catch (_) { $textarea.select(); document.execCommand('copy'); }
-    $textarea.value = ''; relatedWords = []; render(); saveState();
-    $copyOk.style.opacity = '1'; setTimeout(() => { $copyOk.style.opacity = '0'; }, 1600);
+    const val = $textarea.value; if (!val) return;
+    try { await navigator.clipboard.writeText(val); }
+    catch (_) { $textarea.select(); document.execCommand('copy'); }
+    $textarea.value = ''; relatedWords = []; render();
+    await dbSet('settings', 'composedText', '');
+    showCopyOk();
 }
 
-function saveState() {
-    const data = { composedText: $textarea.value, userDict };
-    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) chrome.storage.local.set(data);
-    else try { localStorage.setItem('t5state', JSON.stringify(data)); } catch(_) {}
+function showCopyOk() {
+    $copyOk.style.opacity = '1';
+    setTimeout(() => { $copyOk.style.opacity = '0'; }, 1600);
 }
 
-function loadState(cb) {
-    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-        chrome.storage.local.get(['composedText','userDict'], data => {
-            if (data.composedText) $textarea.value = data.composedText;
-            if (Array.isArray(data.userDict)) userDict = data.userDict;
-            cb();
-        });
-    } else {
-        try { const d = JSON.parse(localStorage.getItem('t5state') || '{}'); if (d.composedText) $textarea.value = d.composedText; if (Array.isArray(d.userDict)) userDict = d.userDict; } catch(_) {}
-        cb();
-    }
-    function saveWordPairs() {
-    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-        chrome.storage.local.set({ wordPairs });
-    } else {
-        try { localStorage.setItem('t5pairs', JSON.stringify(wordPairs)); } catch(_) {}
-    }
-}
-
-function loadWordPairs(cb) {
-    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-        chrome.storage.local.get(['wordPairs'], data => {
-            if (data.wordPairs) wordPairs = data.wordPairs;
-            cb();
-        });
-    } else {
+// ── Dictionary download ───────────────────────────────────────────────────────
+async function fetchWithFallback(urls) {
+    const errors = [];
+    for (const url of urls) {
         try {
-            const raw = localStorage.getItem('t5pairs');
-            if (raw) wordPairs = JSON.parse(raw);
-        } catch(_) {}
-        cb();
+            const res = await fetch(url);
+            if (res.ok) return await res.text();
+            errors.push(url.split('/').pop() + ': HTTP ' + res.status);
+        } catch (err) { errors.push(url.split('/').pop() + ': ' + err.message); }
     }
+    throw new Error(errors.slice(-1)[0] || '所有下載通道失效');
 }
 
-async function downloadDict(url, parser, statusEl, btn) {
-    const origText = btn.textContent;
+async function downloadAction(type, statusId, btn) {
+    const el = document.getElementById(statusId);
+    const origLabel = btn.textContent;
     btn.disabled = true; btn.textContent = '下載中…';
-    statusEl.textContent = '';
+    el.style.color = '#64748b'; el.textContent = '載入中…';
     try {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const count = parser(await res.text());
-        saveWordPairs();
-        statusEl.style.color = '#16a34a';
-        statusEl.textContent = `✓ 已載入 ${count} 個詞對`;
-        btn.textContent = '✓ 完成';
-    } catch(e) {
-        statusEl.style.color = '#dc2626';
-        statusEl.textContent = '✗ 失敗: ' + e.message;
-        btn.textContent = origText; btn.disabled = false;
-    }
-}
+        const text = await fetchWithFallback(DICT_SOURCES[type]);
+        let count = 0;
 
-function parseCEDict(text) {
-    let count = 0;
-    for (const line of text.split('\n')) {
-        if (!line || line.startsWith('#')) continue;
-        const trad = line.split(' ')[0];
-        if (trad.length === 2) {
-            const [a, b] = [trad[0], trad[1]];
-            if (!wordPairs[a]) wordPairs[a] = [];
-            if (!wordPairs[a].includes(b)) { wordPairs[a].push(b); count++; }
+        if (type === 'RIME_STROKE') {
+            const entries = [];
+            for (const line of text.split('\n')) {
+                if (!line || line.startsWith('#') || line.startsWith('---') || line === '...') continue;
+                const p = line.split('\t');
+                if (p.length >= 2) {
+                    const code = p[1].trim()
+                        .replace(/h/g,'1').replace(/s/g,'2').replace(/p/g,'3')
+                        .replace(/n/g,'4').replace(/z/g,'5');
+                    if (/^[1-5]+$/.test(code)) { entries.push({ char: p[0].trim(), code }); count++; }
+                }
+            }
+            await dbSetAll('userDict', entries);
+            userDict = await dbGetAll('userDict');
+        } else {
+            // CEDICT or CANTO — build word-pair bigrams
+            for (const line of text.split('\n')) {
+                const str = line.trim();
+                if (!str || str.startsWith('#') || str.startsWith('---') || str === '...') continue;
+                // CC-CEDICT: "Traditional Simplified [pinyin] /def/"  → first space-token = traditional
+                // RIME YAML:  "word\tpinyin\t..."                     → first tab-token = word
+                const word = str.includes('\t') ? str.split('\t')[0].trim() : str.split(' ')[0].trim();
+                if (word.length >= 2 && /^[\u4e00-\u9fa5]+$/.test(word)) {
+                    for (let i = 0; i < word.length - 1; i++) {
+                        const a = word[i], b = word[i + 1];
+                        if (!wordPairs[a]) wordPairs[a] = [];
+                        if (!wordPairs[a].includes(b)) { wordPairs[a].push(b); count++; }
+                    }
+                }
+            }
+            await dbSet('wordPairs', 'main', wordPairs);
         }
+
+        el.style.color = '#16a34a'; el.textContent = '✓ ' + count.toLocaleString() + ' 筆';
+        btn.textContent = '✓'; btn.disabled = false;
+    } catch (err) {
+        el.style.color = '#dc2626'; el.textContent = '✗ ' + err.message;
+        btn.textContent = origLabel; btn.disabled = false;
     }
-    return count;
 }
 
-function parseCanto(text) {
-    let count = 0, inData = false;
-    for (const line of text.split('\n')) {
-        if (line.trim() === '...') { inData = true; continue; }
-        if (!inData || !line.trim() || line.startsWith('#')) continue;
-        const word = line.split(/[\t\s]/)[0];
-        if (word.length >= 2) {
-            const [a, b] = [word[0], word[1]];
-            if (!wordPairs[a]) wordPairs[a] = [];
-            if (!wordPairs[a].includes(b)) { wordPairs[a].push(b); count++; }
-        }
-    }
-    return count;
-}
+async function clearWordPairs() {
+    wordPairs = {}; relatedWords = [];
+    await dbDelete('wordPairs', 'main');
+    ['cedict-status','canto-status'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.style.color = '#94a3b8'; el.textContent = '已清除'; }
+    });
+    render();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    $textarea = document.getElementById('textarea');
-    $candBox = document.getElementById('candidate-box');
+// ── Custom word add ───────────────────────────────────────────────────────────
+async function addCustomWord() {
+    const char = document.getElementById('add-char').value.trim();
+    const code = document.getElementById('add-code').value.trim().replace(/\s/g,'');
+    const msg  = document.getElementById('add-msg');
+    if (!char) { msg.style.color = '#dc2626'; msg.textContent = '請輸入字或詞'; return; }
+    if (!/^[1-6]+$/.test(code)) { msg.style.color = '#dc2626'; msg.textContent = '筆畫碼只能用數字 1-6'; return; }
+    const entry = { char, code };
+    userDict = userDict.filter(e => e.char !== char);
+    userDict.push(entry);
+    await dbSetAll('userDict', [entry]);
+    document.getElementById('add-char').value = '';
+    document.getElementById('add-code').value = '';
+    msg.style.color = '#16a34a'; msg.textContent = '已加入：' + char + ' (' + code + ')';
+    setTimeout(() => { msg.textContent = ''; }, 2000);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+    $textarea    = document.getElementById('textarea');
+    $candBox     = document.getElementById('candidate-box');
     $candStrokes = document.getElementById('cand-strokes');
-    $candCode = document.getElementById('cand-code');
-    $candGrid = document.getElementById('cand-grid');
-    $relatedBar = document.getElementById('related-bar');
-    $modeBtn = document.getElementById('mode-btn');
-    $copyOk = document.getElementById('copy-ok');
-    $keyGrid = document.getElementById('key-grid');
+    $candCode    = document.getElementById('cand-code');
+    $candGrid    = document.getElementById('cand-grid');
+    $relatedBar  = document.getElementById('related-bar');
+    $modeBtn     = document.getElementById('mode-btn');
+    $copyOk      = document.getElementById('copy-ok');
+    $keyGrid     = document.getElementById('key-grid');
+
+    await initDB();
+    const savedText = await dbGet('settings', 'composedText');
+    if (savedText) $textarea.value = savedText;
+    userDict  = await dbGetAll('userDict');
+    wordPairs = (await dbGet('wordPairs', 'main')) || {};
+
     $modeBtn.addEventListener('click', () => { isImeMode = !isImeMode; render(); });
     document.getElementById('copy-btn').addEventListener('click', copyAndClear);
     document.addEventListener('keydown', handleKeyDown);
-    $textarea.addEventListener('input', saveState);
-        // Settings modal
-    const $settingsModal = document.getElementById('settings-modal');
-    document.getElementById('settings-btn').addEventListener('click', () => {
-        $settingsModal.style.display = 'flex';
-    });
-    document.getElementById('settings-close').addEventListener('click', () => {
-        $settingsModal.style.display = 'none';
-    });
+    $textarea.addEventListener('input', () => dbSet('settings', 'composedText', $textarea.value));
 
-    // RIME dictionary download
-    document.getElementById('rime-btn').addEventListener('click', async () => {
-        const btn = document.getElementById('rime-btn');
-        const status = document.getElementById('rime-status');
-        btn.textContent = '下載中…'; btn.disabled = true;
-        status.textContent = '';
-        try {
-            const res = await fetch('https://raw.githubusercontent.com/rime/rime-stroke/master/stroke.dict.yaml');
-            if (!res.ok) throw new Error('Network error');
-            const lines = (await res.text()).split('\n');
-            const entries = [];
-            for (const line of lines) {
-                if (!line || line.startsWith('#') || line.startsWith('---')) continue;
-                const parts = line.split('\t');
-                if (parts.length >= 2) {
-                    let numCode = '';
-                    for (const c of parts[1].trim()) {
-                        if (c==='h') numCode+='1'; else if (c==='s') numCode+='2';
-                        else if (c==='p') numCode+='3'; else if (c==='n') numCode+='4';
-                        else if (c==='z') numCode+='5';
-                    }
-                    if (numCode) entries.push({ char: parts[0], code: numCode });
-                }
-            }
-            userDict = [...userDict, ...entries];
-            saveState();
-            status.textContent = `✓ 已下載 ${entries.length} 個字`;
-            btn.textContent = '✓ 完成';
-        } catch (e) {
-            status.textContent = '✗ 下載失敗: ' + e.message;
-            btn.textContent = '重試'; btn.disabled = false;
-        }
+    // Settings modal
+    const $modal = document.getElementById('settings-modal');
+    document.getElementById('settings-btn').addEventListener('click',   () => $modal.style.display = 'flex');
+    document.getElementById('settings-close').addEventListener('click', () => $modal.style.display = 'none');
+    $modal.addEventListener('click', e => { if (e.target === $modal) $modal.style.display = 'none'; });
+
+    document.getElementById('rime-btn').addEventListener('click',
+        function() { downloadAction('RIME_STROKE', 'rime-status', this); });
+    document.getElementById('cedict-btn').addEventListener('click',
+        function() { downloadAction('CEDICT', 'cedict-status', this); });
+    document.getElementById('canto-btn').addEventListener('click',
+        function() { downloadAction('CANTO', 'canto-status', this); });
+    document.getElementById('clear-pairs-btn').addEventListener('click', clearWordPairs);
+    document.getElementById('add-btn').addEventListener('click', addCustomWord);
+    document.getElementById('add-code').addEventListener('keydown', e => {
+        if (e.key === 'Enter') addCustomWord();
     });
 
-    // Add custom word
-    document.getElementById('add-btn').addEventListener('click', () => {
-        const char = document.getElementById('add-char').value.trim();
-        const code = document.getElementById('add-code').value.trim();
-        if (!char || !code || !/^[1-6]+$/.test(code)) {
-            alert('請輸入字和有效筆碼 (1-6)'); return;
-        }
-        userDict = [...userDict, { char, code }];
-        saveState();
-        document.getElementById('add-char').value = '';
-        document.getElementById('add-code').value = '';
-        alert(`已加入：${char} (${code})`);
-    });
-
-        // Settings modal
-    const $settingsModal = document.getElementById('settings-modal');
-    document.getElementById('settings-btn').addEventListener('click',  () => { $settingsModal.style.display = 'flex'; });
-    document.getElementById('settings-close').addEventListener('click', () => { $settingsModal.style.display = 'none'; });
-
-    // RIME strokes
-    document.getElementById('rime-btn').addEventListener('click', async () => {
-        const btn = document.getElementById('rime-btn');
-        const st  = document.getElementById('rime-status');
-        btn.disabled = true; btn.textContent = '下載中…'; st.textContent = '';
-        try {
-            const res = await fetch('https://raw.githubusercontent.com/rime/rime-stroke/master/stroke.dict.yaml');
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            const lines = (await res.text()).split('\n');
-            const entries = [];
-            for (const line of lines) {
-                if (!line || line.startsWith('#') || line.startsWith('---')) continue;
-                const parts = line.split('\t');
-                if (parts.length >= 2) {
-                    let code = '';
-                    for (const c of parts[1].trim()) {
-                        if (c==='h') code+='1'; else if (c==='s') code+='2';
-                        else if (c==='p') code+='3'; else if (c==='n') code+='4';
-                        else if (c==='z') code+='5';
-                    }
-                    if (code) entries.push({ char: parts[0], code });
-                }
-            }
-            userDict = [...userDict, ...entries];
-            saveState();
-            st.style.color = '#16a34a';
-            st.textContent  = `✓ 已下載 ${entries.length} 個字`;
-            btn.textContent = '✓ 完成';
-        } catch(e) {
-            st.style.color = '#dc2626';
-            st.textContent = '✗ 失敗: ' + e.message;
-            btn.textContent = '下載 RIME 筆畫字典 (~27,000字)';
-            btn.disabled = false;
-        }
-    });
-
-    // CC-CEDICT
-    document.getElementById('cedict-btn').addEventListener('click', () =>
-        downloadDict(
-            'https://raw.githubusercontent.com/mhagiwara/cc-cedict/master/cedict_ts.u8',
-            parseCEDict,
-            document.getElementById('cedict-status'),
-            document.getElementById('cedict-btn')
-        )
-    );
-
-    // Cantonese (rime-cantonese uses words.hk as source)
-    document.getElementById('canto-btn').addEventListener('click', () =>
-        downloadDict(
-            'https://raw.githubusercontent.com/rime/rime-cantonese/main/jyut6ping3.words.dict.yaml',
-            parseCanto,
-            document.getElementById('canto-status'),
-            document.getElementById('canto-btn')
-        )
-    );
-
-    // Clear word pairs
-    document.getElementById('clear-pairs-btn').addEventListener('click', () => {
-        wordPairs = {};
-        saveWordPairs();
-        document.getElementById('cedict-status').textContent = '';
-        document.getElementById('canto-status').textContent  = '';
-        alert('詞對已清除 Word pairs cleared');
-    });
-
-    // Custom word add
-    document.getElementById('add-btn').addEventListener('click', () => {
-        const char = document.getElementById('add-char').value.trim();
-        const code = document.getElementById('add-code').value.trim();
-        if (!char || !code || !/^[1-6]+$/.test(code)) { alert('請輸入字和有效筆碼 (1-6)'); return; }
-        userDict = [...userDict, { char, code }];
-        saveState();
-        document.getElementById('add-char').value = '';
-        document.getElementById('add-code').value = '';
-        alert(`已加入：${char} (${code})`);
-    });
-
-    loadState(() => loadWordPairs(() => render()));
+    render();
 });

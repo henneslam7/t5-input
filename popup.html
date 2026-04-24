@@ -6,48 +6,325 @@
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
-    width: 420px; height: 600px; overflow: hidden;
+    width: 420px;
+    height: 600px;
+    overflow: hidden;
     font-family: 'Noto Sans HK', 'Microsoft YaHei', 'PingFang HK', sans-serif;
-    background: #f8fafc; display: flex; flex-direction: column;
-    user-select: none; -webkit-user-select: none;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    user-select: none;
+    -webkit-user-select: none;
 }
-.header { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; background: #1e40af; color: white; flex-shrink: 0; gap: 8px; }
-.header-title { font-size: 12px; font-weight: 700; letter-spacing: 0.5px; white-space: nowrap; flex: 1; text-align: center; }
-.mode-btn { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 5px; border: none; cursor: pointer; transition: all 0.1s; flex-shrink: 0; }
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    background: #1e40af;
+    color: white;
+    flex-shrink: 0;
+    gap: 8px;
+}
+.header-title {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    flex: 1;
+    text-align: center;
+}
+.mode-btn {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.1s;
+    flex-shrink: 0;
+}
 .mode-on  { background: white; color: #1e40af; }
 .mode-off { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4); }
 .hdr-right { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
-.copy-btn { font-size: 11px; padding: 3px 9px; background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 5px; cursor: pointer; }
+.copy-btn {
+    font-size: 11px;
+    padding: 3px 9px;
+    background: rgba(255,255,255,0.15);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 5px;
+    cursor: pointer;
+}
 .copy-btn:hover { background: rgba(255,255,255,0.28); }
-.copy-ok { font-size: 10px; color: #86efac; opacity: 0; transition: opacity 0.3s; white-space: nowrap; }
-.editor-area { flex: 1; display: flex; flex-direction: column; padding: 6px 8px 4px; position: relative; min-height: 0; gap: 4px; }
-.related-bar { display: none; align-items: center; gap: 4px; overflow-x: auto; padding: 2px 0; flex-shrink: 0; scrollbar-width: none; min-height: 30px; }
+.settings-btn {
+    font-size: 14px;
+    padding: 2px 7px;
+    background: rgba(255,255,255,0.15);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 5px;
+    cursor: pointer;
+    line-height: 1.4;
+}
+.settings-btn:hover { background: rgba(255,255,255,0.28); }
+.copy-ok {
+    font-size: 10px;
+    color: #86efac;
+    opacity: 0;
+    transition: opacity 0.3s;
+    white-space: nowrap;
+}
+.editor-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 6px 8px 4px;
+    position: relative;
+    min-height: 0;
+    gap: 4px;
+}
+.related-bar {
+    display: none;
+    align-items: center;
+    gap: 4px;
+    overflow-x: auto;
+    padding: 2px 0;
+    flex-shrink: 0;
+    scrollbar-width: none;
+    min-height: 30px;
+}
 .related-bar::-webkit-scrollbar { display: none; }
-.related-label { font-size: 10px; color: #94a3b8; white-space: nowrap; flex-shrink: 0; padding: 0 2px; }
-.related-btn { font-size: 16px; padding: 1px 8px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; cursor: pointer; color: #1e40af; white-space: nowrap; flex-shrink: 0; transition: background 0.1s; line-height: 1.4; }
+.related-label {
+    font-size: 10px;
+    color: #94a3b8;
+    white-space: nowrap;
+    flex-shrink: 0;
+    padding: 0 2px;
+}
+.related-btn {
+    font-size: 16px;
+    padding: 1px 10px 1px 8px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #1e40af;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background 0.1s;
+    line-height: 1.4;
+    position: relative;
+}
 .related-btn:hover { background: #dbeafe; }
-textarea { flex: 1; resize: none; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; font-size: 18px; line-height: 1.65; color: #1e293b; font-family: inherit; background: white; outline: none; user-select: text; -webkit-user-select: text; min-height: 0; }
+.rel-num {
+    position: absolute;
+    top: 1px;
+    right: 2px;
+    font-size: 8px;
+    opacity: 0.4;
+}
+textarea {
+    flex: 1;
+    resize: none;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 18px;
+    line-height: 1.65;
+    color: #1e293b;
+    font-family: inherit;
+    background: white;
+    outline: none;
+    user-select: text;
+    -webkit-user-select: text;
+    min-height: 0;
+}
 textarea:focus { border-color: #93c5fd; box-shadow: 0 0 0 2px rgba(147,197,253,0.3); }
-.candidate-box { display: none; position: absolute; left: 8px; right: 8px; bottom: 4px; height: 66%; background: white; border: 1.5px solid #93c5fd; border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,0.16); flex-direction: column; z-index: 20; animation: fadeUp 0.12s ease; }
-@keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-.cand-header { display: flex; justify-content: space-between; align-items: center; padding: 5px 10px; border-bottom: 1px solid #f1f5f9; background: #f8fafc; border-radius: 10px 10px 0 0; flex-shrink: 0; }
+.candidate-box {
+    display: none;
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: 4px;
+    height: 66%;
+    background: white;
+    border: 1.5px solid #93c5fd;
+    border-radius: 10px;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.16);
+    flex-direction: column;
+    z-index: 20;
+    animation: fadeUp 0.12s ease;
+}
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.cand-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 10px;
+    border-bottom: 1px solid #f1f5f9;
+    background: #f8fafc;
+    border-radius: 10px 10px 0 0;
+    flex-shrink: 0;
+}
 .cand-strokes { font-size: 22px; color: #2563eb; letter-spacing: 4px; }
-.cand-code { font-size: 10px; color: #94a3b8; font-family: monospace; }
-.cand-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 3px; padding: 5px; overflow-y: auto; flex: 1; }
+.cand-code    { font-size: 10px; color: #94a3b8; font-family: monospace; }
+.cand-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+    gap: 3px;
+    padding: 5px;
+    overflow-y: auto;
+    flex: 1;
+}
 .cand-grid::-webkit-scrollbar { width: 3px; }
 .cand-grid::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
-.cand-btn { height: 40px; background: none; border: 1px solid transparent; border-radius: 6px; font-size: 19px; cursor: pointer; color: #1e293b; position: relative; transition: background 0.08s; font-family: inherit; }
+.cand-btn {
+    height: 40px;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    font-size: 19px;
+    cursor: pointer;
+    color: #1e293b;
+    position: relative;
+    transition: background 0.08s;
+    font-family: inherit;
+}
 .cand-btn:hover { background: #f1f5f9; }
-.cand-btn.sel { background: #2563eb; color: white; }
-.cand-num { position: absolute; top: 1px; right: 2px; font-size: 8px; opacity: 0.45; }
-.cand-footer { padding: 4px 10px; background: #f8fafc; border-radius: 0 0 10px 10px; display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; flex-shrink: 0; }
-.key-guide { flex-shrink: 0; background: white; border-top: 1px solid #e2e8f0; padding: 6px 8px 5px; }
-.key-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; max-width: 270px; margin: 0 auto; }
-.key-cell { display: flex; flex-direction: column; align-items: center; justify-content: center; background: white; border: 1.5px solid #e2e8f0; border-radius: 6px; padding: 3px 1px; aspect-ratio: 1; box-shadow: 0 1px 2px rgba(0,0,0,0.07); transition: all 0.08s; }
+.cand-btn.sel  { background: #2563eb; color: white; }
+.cand-num {
+    position: absolute;
+    top: 1px;
+    right: 2px;
+    font-size: 8px;
+    opacity: 0.45;
+}
+.cand-footer {
+    padding: 4px 10px;
+    background: #f8fafc;
+    border-radius: 0 0 10px 10px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: #94a3b8;
+    flex-shrink: 0;
+}
+.key-guide {
+    flex-shrink: 0;
+    background: white;
+    border-top: 1px solid #e2e8f0;
+    padding: 6px 8px 5px;
+}
+.key-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 4px;
+    max-width: 270px;
+    margin: 0 auto;
+}
+.key-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 3px 1px;
+    aspect-ratio: 1;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.07);
+    transition: all 0.08s;
+}
 .key-cell.active { border-color: #2563eb; background: #eff6ff; transform: translateY(1px); box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); }
 .key-letter { font-size: 9px; color: #64748b; font-weight: 700; }
 .key-stroke { font-size: 15px; font-weight: 700; color: #1e293b; line-height: 1.1; }
-.key-hint { text-align: center; font-size: 9px; color: #94a3b8; margin-top: 3px; }
+.key-hint   { text-align: center; font-size: 9px; color: #94a3b8; margin-top: 3px; }
+/* Settings modal */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+}
+.modal-panel {
+    background: white;
+    border-radius: 12px;
+    width: 340px;
+    max-height: 520px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+    overflow: hidden;
+}
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: #1e40af;
+    color: white;
+}
+.modal-header span { font-size: 13px; font-weight: 700; }
+.modal-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0 4px;
+    opacity: 0.8;
+}
+.modal-close:hover { opacity: 1; }
+.modal-body { padding: 14px 16px; overflow-y: auto; flex: 1; }
+.modal-section {
+    font-size: 10px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 12px 0 6px;
+}
+.modal-section:first-child { margin-top: 0; }
+.dict-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.dict-label { flex: 1; font-size: 12px; color: #374151; }
+.dl-btn {
+    font-size: 11px;
+    padding: 4px 10px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 5px;
+    color: #1e40af;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.dl-btn:hover:not(:disabled) { background: #dbeafe; }
+.dl-btn:disabled { opacity: 0.5; cursor: default; }
+.dl-btn.danger { background: #fef2f2; border-color: #fecaca; color: #dc2626; }
+.dl-btn.danger:hover:not(:disabled) { background: #fee2e2; }
+.dl-status { font-size: 10px; color: #64748b; white-space: nowrap; min-width: 60px; text-align: right; }
+.modal-divider { border: none; border-top: 1px solid #e2e8f0; margin: 10px 0; }
+.add-row { display: flex; gap: 6px; align-items: center; }
+.add-input {
+    flex: 1;
+    font-size: 13px;
+    padding: 5px 8px;
+    border: 1px solid #e2e8f0;
+    border-radius: 5px;
+    outline: none;
+    font-family: inherit;
+    user-select: text;
+    -webkit-user-select: text;
+}
+.add-input:focus { border-color: #93c5fd; }
+.add-msg { font-size: 10px; color: #94a3b8; margin-top: 4px; min-height: 14px; }
 </style>
 </head>
 <body>
@@ -58,7 +335,7 @@ textarea:focus { border-color: #93c5fd; box-shadow: 0 0 0 2px rgba(147,197,253,0
     <div class="hdr-right">
         <span class="copy-ok" id="copy-ok">✓ 已複製</span>
         <button id="copy-btn" class="copy-btn">複製清空</button>
-        <button id="settings-btn" class="copy-btn" title="Settings">⚙</button>
+        <button id="settings-btn" class="settings-btn" title="字典設定">⚙</button>
     </div>
 </div>
 
@@ -68,11 +345,11 @@ textarea:focus { border-color: #93c5fd; box-shadow: 0 0 0 2px rgba(147,197,253,0
     <div class="candidate-box" id="candidate-box">
         <div class="cand-header">
             <div class="cand-strokes" id="cand-strokes"></div>
-            <div class="cand-code" id="cand-code"></div>
+            <div class="cand-code"    id="cand-code"></div>
         </div>
         <div class="cand-grid" id="cand-grid"></div>
         <div class="cand-footer">
-            <span>Space / Enter：選字</span>
+            <span>Space / Enter：選字 &nbsp;·&nbsp; 1-9：快選</span>
             <span>Esc：取消</span>
         </div>
     </div>
@@ -80,48 +357,46 @@ textarea:focus { border-color: #93c5fd; box-shadow: 0 0 0 2px rgba(147,197,253,0
 
 <div class="key-guide">
     <div class="key-grid" id="key-grid"></div>
-    <div class="key-hint">Shift：切換模式 · 6/*：萬用符</div>
+    <div class="key-hint">Shift：切換模式 &nbsp;·&nbsp; 6/*：萬用 &nbsp;·&nbsp; Ctrl+Shift+Enter：複製清空</div>
 </div>
 
-<!-- Settings Modal -->
-<div id="settings-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:50;align-items:center;justify-content:center;">
-    <div style="background:white;border-radius:12px;padding:16px;width:360px;max-height:90vh;overflow-y:auto;">
-        <h2 style="font-size:15px;font-weight:700;margin-bottom:12px;">設定 Settings</h2>
-
-        <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #e2e8f0;">
-            <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;">筆畫字庫 Stroke Dictionary</div>
-            <button id="rime-btn" style="width:100%;padding:7px;background:#7c3aed;color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer;margin-bottom:4px;">
-                下載 RIME 筆畫字典 (~27,000字)
-            </button>
-            <div id="rime-status" style="font-size:10px;color:#64748b;text-align:center;"></div>
+<!-- Settings modal -->
+<div class="modal-overlay" id="settings-modal">
+    <div class="modal-panel">
+        <div class="modal-header">
+            <span>⚙ 字典設定</span>
+            <button class="modal-close" id="settings-close">✕</button>
         </div>
-
-        <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #e2e8f0;">
-            <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;">相關詞庫 Word-pair Dictionaries</div>
-            <button id="cedict-btn" style="width:100%;padding:7px;background:#0369a1;color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer;margin-bottom:4px;">
-                下載 CC-CEDICT 中文詞典 (~120,000詞)
-            </button>
-            <div id="cedict-status" style="font-size:10px;color:#64748b;text-align:center;margin-bottom:6px;"></div>
-            <button id="canto-btn" style="width:100%;padding:7px;background:#0f766e;color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer;margin-bottom:4px;">
-                下載 粵語詞典 words.hk / rime-cantonese
-            </button>
-            <div id="canto-status" style="font-size:10px;color:#64748b;text-align:center;margin-bottom:4px;"></div>
-            <button id="clear-pairs-btn" style="width:100%;padding:5px;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;cursor:pointer;">
-                清除已下載詞對 Clear word pairs
-            </button>
-        </div>
-
-        <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #e2e8f0;">
-            <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;">新增自定字 Add Word</div>
-            <div style="display:flex;gap:6px;">
-                <input id="add-char" placeholder="字" maxlength="2" style="border:1px solid #e2e8f0;border-radius:6px;padding:6px;width:60px;font-size:14px;text-align:center;">
-                <input id="add-code" placeholder="筆碼 e.g. 3121" style="border:1px solid #e2e8f0;border-radius:6px;padding:6px;flex:1;font-size:12px;">
-                <button id="add-btn" style="background:#2563eb;color:white;border:none;border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;">加</button>
+        <div class="modal-body">
+            <div class="modal-section">下載字典</div>
+            <div class="dict-row">
+                <span class="dict-label">RIME 筆畫字庫</span>
+                <button id="rime-btn" class="dl-btn">下載</button>
+                <span id="rime-status" class="dl-status"></span>
             </div>
-        </div>
-
-        <div style="display:flex;justify-content:flex-end;">
-            <button id="settings-close" style="padding:6px 16px;background:#1e293b;color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer;">關閉</button>
+            <div class="dict-row">
+                <span class="dict-label">CC-CEDICT 詞庫</span>
+                <button id="cedict-btn" class="dl-btn">下載</button>
+                <span id="cedict-status" class="dl-status"></span>
+            </div>
+            <div class="dict-row">
+                <span class="dict-label">粵語詞庫 (rime-cantonese)</span>
+                <button id="canto-btn" class="dl-btn">下載</button>
+                <span id="canto-status" class="dl-status"></span>
+            </div>
+            <hr class="modal-divider">
+            <div class="modal-section">自訂詞語</div>
+            <div class="add-row">
+                <input id="add-char" class="add-input" placeholder="字 / 詞" maxlength="10">
+                <input id="add-code" class="add-input" placeholder="筆畫碼 (數字)" maxlength="20">
+                <button id="add-btn" class="dl-btn">加入</button>
+            </div>
+            <div class="add-msg" id="add-msg"></div>
+            <hr class="modal-divider">
+            <div class="dict-row">
+                <span class="dict-label" style="color:#dc2626">清除所有詞庫數據</span>
+                <button id="clear-pairs-btn" class="dl-btn danger">清除</button>
+            </div>
         </div>
     </div>
 </div>

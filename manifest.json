@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "T5 筆畫輸入法 (T5 Stroke Input)",
+  "version": "1.0.0",
+  "description": "Cantonese / Traditional Chinese 5-stroke input method. Dictionary is downloaded from the open-source rime-stroke and rime-cantonese projects — nothing is hard-coded.",
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": ["storage", "unlimitedStorage", "alarms"],
+  "host_permissions": [
+    "https://raw.githubusercontent.com/*"
+  ]
+}

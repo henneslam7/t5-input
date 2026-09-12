@@ -16,6 +16,7 @@
   const copyBtn = $('copy-btn');
   const copyOk = $('copy-ok');
   const settingsBtn = $('settings-btn');
+  const floatBtn = $('float-btn');
   const textarea = $('textarea');
   const candidateBox = $('candidate-box');
   const candStrokes = $('cand-strokes');
@@ -320,6 +321,13 @@
     modeBtn.addEventListener('click', () => setImeMode(!isImeMode));
     copyBtn.addEventListener('click', copyAndClear);
 
+    floatBtn.addEventListener('click', () => {
+      chrome.runtime.sendMessage({ type: 'openFloating' });
+      // In the anchored toolbar popup, clicking anything that isn't inside
+      // it causes Chrome to close it anyway once the new window takes
+      // focus — nothing extra to do here.
+    });
+
     settingsBtn.addEventListener('click', () => {
       settingsOverlay.style.display = 'flex';
       refreshDictBtn.focus(); // move focus off the textarea so IME keys don't leak into the panel
@@ -366,9 +374,20 @@
     });
   }
 
+  function applyFloatingModeUi() {
+    const isFloating = new URLSearchParams(location.search).get('floating') === '1';
+    if (isFloating) {
+      // Already the pinned/floating window — the button to open another
+      // one would just be confusing, so hide it and let the title say so.
+      floatBtn.style.display = 'none';
+      document.querySelector('.header-title').textContent = 'T5 筆畫輸入 📌';
+    }
+  }
+
   async function init() {
     buildKeyGuide();
     setImeMode(true);
+    applyFloatingModeUi();
     wireEvents();
     textarea.focus();
 

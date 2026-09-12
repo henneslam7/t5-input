@@ -9,8 +9,14 @@
   "background": {
     "service_worker": "background.js"
   },
-  "permissions": ["storage", "unlimitedStorage", "alarms"],
+  "permissions": ["storage", "unlimitedStorage", "alarms", "system.display"],
   "host_permissions": [
     "https://raw.githubusercontent.com/*"
-  ]
+  ],
+  "commands": {
+    "toggle-floating": {
+      "suggested_key": { "default": "Alt+Shift+T" },
+      "description": "開關浮動輸入窗 Toggle floating input window"
+    }
+  }
 }

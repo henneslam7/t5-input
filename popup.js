@@ -41,6 +41,7 @@
   let dictEntries = []; // {c, k, f, j} from the online dictionary
   let trieRoot = null;
   let assocIndex = {}; // leadChar -> [{w, f, s}] "what usually follows this char"
+  let relatedWords = []; // the words currently rendered in the related-bar (for number-key picking)
 
   // ---------- Key guide ----------
   function buildKeyGuide() {
@@ -202,11 +203,13 @@
     const words = leadChar ? assocIndex[leadChar] : null;
 
     if (!words || words.length === 0) {
+      relatedWords = [];
       relatedBar.style.display = 'none';
       relatedBar.innerHTML = '';
       return;
     }
 
+    relatedWords = words.slice(0, 9); // capped to 9 so every chip has a number key
     relatedBar.innerHTML = '';
     relatedBar.style.display = 'flex';
 
@@ -215,19 +218,26 @@
     label.textContent = '關聯:';
     relatedBar.appendChild(label);
 
-    words.slice(0, 12).forEach((entry) => {
+    relatedWords.forEach((entry, idx) => {
       const rest = [...entry.w].slice(1).join('');
       const btn = document.createElement('button');
       btn.className = 'related-btn' + (entry.s === 'canto' ? ' canto' : '');
-      btn.textContent = entry.w;
-      btn.title = entry.s === 'canto' ? '粵語口語詞 (無頻率數據)' : `語料出現 ${entry.f.toLocaleString()} 次`;
+      btn.innerHTML = `<span class="related-num">${idx + 1}</span>${rest}`;
+      btn.title = (entry.s === 'canto'
+        ? `${entry.w}　粵語口語詞 (無頻率數據)`
+        : `${entry.w}　語料出現 ${entry.f.toLocaleString()} 次`);
       btn.addEventListener('mousedown', (e) => e.preventDefault());
-      btn.addEventListener('click', () => {
-        insertAtCursor(rest);
-        refreshRelatedBar(); // chain: suggest what follows the word just completed
-      });
+      btn.addEventListener('click', () => selectRelatedWord(idx));
       relatedBar.appendChild(btn);
     });
+  }
+
+  function selectRelatedWord(idx) {
+    const entry = relatedWords[idx];
+    if (!entry) return;
+    const rest = [...entry.w].slice(1).join('');
+    insertAtCursor(rest);
+    refreshRelatedBar(); // chain: suggest what follows the word just completed
   }
 
   async function copyAndClear() {
@@ -309,6 +319,18 @@
         e.preventDefault();
         const idx = parseInt(key, 10) - 1;
         if (idx < candidates.length) commitChar(candidates[idx].c);
+      }
+    } else if (relatedWords.length > 0) {
+      // Not mid-stroke, but the related-word bar has suggestions — number
+      // keys pick them, same as the candidate box does while composing.
+      // Esc dismisses the bar so 1-9 go back to typing literal digits.
+      if (key === 'escape') {
+        e.preventDefault();
+        relatedWords = [];
+        relatedBar.style.display = 'none';
+      } else if (/^[1-9]$/.test(key) && e.location !== 3) {
+        e.preventDefault();
+        selectRelatedWord(parseInt(key, 10) - 1);
       }
     }
   }

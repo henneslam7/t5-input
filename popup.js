@@ -18,6 +18,7 @@
   const settingsBtn = $('settings-btn');
   const floatBtn = $('float-btn');
   const textarea = $('textarea');
+  const relatedBar = $('related-bar');
   const candidateBox = $('candidate-box');
   const candStrokes = $('cand-strokes');
   const candCode = $('cand-code');
@@ -39,6 +40,7 @@
   let userDict = [];
   let dictEntries = []; // {c, k, f, j} from the online dictionary
   let trieRoot = null;
+  let assocIndex = {}; // leadChar -> [{w, f, s}] "what usually follows this char"
 
   // ---------- Key guide ----------
   function buildKeyGuide() {
@@ -128,9 +130,11 @@
   }
 
   function updateCandidates() {
+    relatedBar.style.display = 'none'; // composing a stroke code now — hand the UI to the candidate box
     if (!inputBuffer) {
       candidates = [];
       candidateBox.style.display = 'none';
+      refreshRelatedBar();
       return;
     }
     const matches = trieRoot ? lookup(inputBuffer) : [];
@@ -168,18 +172,62 @@
   }
 
   // ---------- Commit / editing ----------
-  function commitChar(char) {
+  function insertAtCursor(str) {
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const val = textarea.value;
-    textarea.value = val.slice(0, start) + char + val.slice(end);
-    const pos = start + char.length;
+    textarea.value = val.slice(0, start) + str + val.slice(end);
+    const pos = start + str.length;
     textarea.focus();
     textarea.selectionStart = textarea.selectionEnd = pos;
+  }
 
+  function commitChar(char) {
+    insertAtCursor(char);
     inputBuffer = '';
     candidates = [];
     candidateBox.style.display = 'none';
+    refreshRelatedBar();
+  }
+
+  // ---------- Related words ("what usually comes after this character") ----------
+  // e.g. after committing 我, suggest 我們/我的/我是/... (ranked by real corpus
+  // frequency) as well as Cantonese-only continuations like 我哋 that a
+  // general-Chinese corpus wouldn't have. Clicking a chip inserts only the
+  // remaining characters, since the lead character is already on screen.
+  function refreshRelatedBar() {
+    if (inputBuffer) { relatedBar.style.display = 'none'; return; } // mid-stroke, candidate box owns the UI
+    const pos = textarea.selectionStart;
+    const leadChar = pos > 0 ? [...textarea.value.slice(0, pos)].pop() : null;
+    const words = leadChar ? assocIndex[leadChar] : null;
+
+    if (!words || words.length === 0) {
+      relatedBar.style.display = 'none';
+      relatedBar.innerHTML = '';
+      return;
+    }
+
+    relatedBar.innerHTML = '';
+    relatedBar.style.display = 'flex';
+
+    const label = document.createElement('span');
+    label.className = 'related-label';
+    label.textContent = '關聯:';
+    relatedBar.appendChild(label);
+
+    words.slice(0, 12).forEach((entry) => {
+      const rest = [...entry.w].slice(1).join('');
+      const btn = document.createElement('button');
+      btn.className = 'related-btn' + (entry.s === 'canto' ? ' canto' : '');
+      btn.textContent = entry.w;
+      btn.title = entry.s === 'canto' ? '粵語口語詞 (無頻率數據)' : `語料出現 ${entry.f.toLocaleString()} 次`;
+      btn.addEventListener('mousedown', (e) => e.preventDefault());
+      btn.addEventListener('click', () => {
+        insertAtCursor(rest);
+        refreshRelatedBar(); // chain: suggest what follows the word just completed
+      });
+      relatedBar.appendChild(btn);
+    });
   }
 
   async function copyAndClear() {
@@ -245,6 +293,7 @@
         inputBuffer = '';
         candidates = [];
         candidateBox.style.display = 'none';
+        refreshRelatedBar();
       } else if (key === ' ' || key === 'enter') {
         e.preventDefault();
         if (candidates.length > 0) commitChar(candidates[selectionIndex].c);
@@ -270,8 +319,8 @@
     const when = new Date(meta.updatedAt).toLocaleString('zh-HK');
     return [
       `${meta.charCount} 字 / ${meta.entryCount} 組編碼 (連自訂 ${userDict.length})`,
-      `來源: rime-stroke + rime-cantonese`,
-      `粵語詞頻覆蓋: ${meta.cantoneseMatched} 字`,
+      `來源: rime-stroke + rime-cantonese + rime-essay`,
+      `粵拼覆蓋: ${meta.jyutpingMatched} 字　關聯字: ${meta.assocLeadCount}`,
       `更新於: ${when}`
     ].join('\n');
   }
@@ -290,8 +339,9 @@
   }
 
   async function loadDictionaryIntoMemory() {
-    const { entries, meta } = await T5Dict.loadDictionary();
+    const { entries, meta, assoc } = await T5Dict.loadDictionary();
     dictEntries = entries;
+    assocIndex = assoc || {};
     rebuildFullDictionary();
     dictStatus.textContent = formatMeta(meta);
     return meta;
@@ -303,7 +353,9 @@
       const { meta } = await T5Dict.refreshDictionary((msg) => {
         dictProgress.textContent = msg;
       });
-      dictEntries = (await T5Dict.loadDictionary()).entries;
+      const loaded = await T5Dict.loadDictionary();
+      dictEntries = loaded.entries;
+      assocIndex = loaded.assoc || {};
       rebuildFullDictionary();
       dictStatus.textContent = formatMeta(meta);
       dictProgress.textContent = '✓ 完成';
@@ -318,6 +370,14 @@
   // ---------- Wiring ----------
   function wireEvents() {
     document.body.addEventListener('keydown', handleKeyDown);
+    // Keep the related-word bar in sync with wherever the cursor actually is —
+    // covers EN-mode typing, pasting, and clicking/arrowing around the text,
+    // not just IME commits (setting textarea.value in JS doesn't fire 'input').
+    textarea.addEventListener('input', refreshRelatedBar);
+    textarea.addEventListener('click', refreshRelatedBar);
+    textarea.addEventListener('keyup', (e) => {
+      if (e.key.startsWith('Arrow') || e.key === 'Home' || e.key === 'End') refreshRelatedBar();
+    });
     modeBtn.addEventListener('click', () => setImeMode(!isImeMode));
     copyBtn.addEventListener('click', copyAndClear);
 
@@ -399,6 +459,7 @@
       dictStatus.textContent = '首次使用，下載緊字典…';
       await refreshDictionaryNow();
     }
+    refreshRelatedBar();
   }
 
   init();
